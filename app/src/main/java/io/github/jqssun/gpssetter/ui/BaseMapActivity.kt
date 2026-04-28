@@ -473,7 +473,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
                     it.priority = NotificationCompat.PRIORITY_HIGH
                     it.addAction(
                         R.drawable.ic_stop,
-                        "Stop GPS",
+                        "Stop",
                         stopPendingIntent
                     )
                 }

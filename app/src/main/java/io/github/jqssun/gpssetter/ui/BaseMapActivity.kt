@@ -55,6 +55,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import java.io.IOException
+import java.util.Locale
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import kotlin.properties.Delegates
@@ -88,7 +89,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
         )
     }
 
-    // Launcher untuk request POST_NOTIFICATIONS permission (Android 13+)
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -138,9 +138,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
             when {
                 ContextCompat.checkSelfPermission(
                     this, Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    // Sudah granted, tidak perlu minta
-                }
+                ) == PackageManager.PERMISSION_GRANTED -> { }
                 shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
                     MaterialAlertDialogBuilder(this)
                         .setTitle("Izin Notifikasi")
@@ -250,7 +248,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
                 xposedDialog = MaterialAlertDialogBuilder(this).run {
                     setTitle(R.string.error_xposed_module_missing)
                     setMessage(R.string.error_xposed_module_missing_desc)
-                    // setCancelable(BuildConfig.DEBUG)
                     setCancelable(true)
                     show()
                 }
@@ -431,6 +428,10 @@ abstract class BaseMapActivity: AppCompatActivity() {
         awaitClose { this.cancel() }
     }
 
+    /**
+     * Reverse geocode koordinat ke nama jalan/alamat,
+     * lalu tampilkan notifikasi dengan alamat tersebut.
+     */
     protected fun showStartNotification(address: String) {
         val stopIntent = Intent(this, StopGpsReceiver::class.java).apply {
             action = StopGpsReceiver.ACTION_STOP_GPS
@@ -440,8 +441,8 @@ abstract class BaseMapActivity: AppCompatActivity() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val lat = PrefManager.getLat
-        val lng = PrefManager.getLng
+        val currentLat = PrefManager.getLat
+        val currentLng = PrefManager.getLng
 
         notificationsChannel.showNotification(this) {
             it.setSmallIcon(R.drawable.ic_stop)
@@ -454,7 +455,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
             it.priority = NotificationCompat.PRIORITY_HIGH
             it.addAction(
                 R.drawable.ic_stop,
-                "Stop",
+                "Stop GPS",
                 stopPendingIntent
             )
         }

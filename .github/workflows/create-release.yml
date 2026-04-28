@@ -1,0 +1,96 @@
+name: Create v1.0.0 Release
+
+on:
+  push:
+    branches:
+      - 'copilot/create-release-v1-0-0'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create tag and publish release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const TARGET_SHA = '3f826fa155b23c773f133caa47ff54867dc08325';
+            const TAG_NAME = 'v1.0.0';
+            const RELEASE_NAME = 'GPS Cihuyy v1.0.0';
+            const RELEASE_ID = 314547923;
+            const RELEASE_BODY = [
+              '## GPS Cihuyy v1.0.0 — Stable Baseline',
+              '',
+              'Versi pertama yang stabil sebagai fondasi pengembangan selanjutnya.',
+              '',
+              '### ✅ Fitur yang sudah berjalan',
+              '- GPS mock location via LSPosed/Xposed',
+              '- Notifikasi persisten saat GPS aktif',
+              '- **Reverse geocoding** — notifikasi menampilkan nama jalan asli (bukan koordinat)',
+              '- Tombol **Stop GPS** langsung dari notifikasi',
+              '- Joystick virtual untuk gerak manual',
+              '- Favorit lokasi',
+              '- Pencarian alamat',
+              '',
+              '### 🔧 Perbaikan di versi ini',
+              '- Rebrand: GPS Setter → GPS Cihuyy',
+              '- applicationId: io.github.hengkerzero.gpscihuyy',
+              '- Hapus flavor foss, tinggal fullRelease',
+              '- Fix APK paths di workflow',
+              '',
+              'This is the stable baseline. Any future experimental features should branch off from this tag so we can always roll back here if something breaks.',
+            ].join('\n');
+
+            // Step 1: Create or update the tag
+            try {
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/tags/${TAG_NAME}`,
+                sha: TARGET_SHA,
+              });
+              console.log(`Tag ${TAG_NAME} created successfully`);
+            } catch (e) {
+              if (e.status === 422) {
+                console.log(`Tag ${TAG_NAME} already exists, updating...`);
+                await github.rest.git.updateRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `tags/${TAG_NAME}`,
+                  sha: TARGET_SHA,
+                  force: true,
+                });
+                console.log(`Tag ${TAG_NAME} updated successfully`);
+              } else {
+                throw e;
+              }
+            }
+
+            // Step 2: Update or create the release
+            try {
+              await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: RELEASE_ID,
+                tag_name: TAG_NAME,
+                name: RELEASE_NAME,
+                body: RELEASE_BODY,
+                draft: false,
+                prerelease: false,
+              });
+              console.log('Draft release updated and published successfully');
+            } catch (e) {
+              console.log(`Failed to update existing draft release (${e.message}), creating new release...`);
+              await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: TAG_NAME,
+                name: RELEASE_NAME,
+                body: RELEASE_BODY,
+                draft: false,
+                prerelease: false,
+              });
+              console.log('New release created and published successfully');
+            }

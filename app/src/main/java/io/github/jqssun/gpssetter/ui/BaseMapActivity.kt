@@ -11,6 +11,7 @@ import android.location.Address
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
@@ -21,6 +22,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
@@ -28,6 +30,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatButton
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -85,6 +88,24 @@ abstract class BaseMapActivity: AppCompatActivity() {
         )
     }
 
+    // Launcher untuk request POST_NOTIFICATIONS permission (Android 13+)
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Izin Notifikasi Diperlukan")
+                .setMessage("Izin notifikasi dibutuhkan agar GPS aktif bisa ditampilkan. Aktifkan di Pengaturan > Aplikasi > GPS Setter > Notifikasi.")
+                .setPositiveButton("Buka Pengaturan") { _, _ ->
+                    startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    })
+                }
+                .setNegativeButton("Nanti", null)
+                .show()
+        }
+    }
+
     protected abstract fun getActivityInstance(): BaseMapActivity
     protected abstract fun hasMarker(): Boolean
     protected abstract fun initializeMap()
@@ -106,8 +127,34 @@ abstract class BaseMapActivity: AppCompatActivity() {
         setupNavView()
         setupButtons()
         setupDrawer()
+        askNotificationPermission()
         if (PrefManager.isJoystickEnabled){
             startService(Intent(this, JoystickService::class.java))
+        }
+    }
+
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // Sudah granted, tidak perlu minta
+                }
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle("Izin Notifikasi")
+                        .setMessage("Aplikasi membutuhkan izin notifikasi untuk menampilkan status GPS yang sedang aktif.")
+                        .setPositiveButton("Izinkan") { _, _ ->
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        .setNegativeButton("Tolak", null)
+                        .show()
+                }
+                else -> {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
         }
     }
 
@@ -385,7 +432,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
     }
 
     protected fun showStartNotification(address: String) {
-        // PendingIntent untuk tombol STOP di notifikasi
         val stopIntent = Intent(this, StopGpsReceiver::class.java).apply {
             action = StopGpsReceiver.ACTION_STOP_GPS
         }
@@ -402,8 +448,8 @@ abstract class BaseMapActivity: AppCompatActivity() {
             it.setContentTitle("📍 GPS Aktif")
             it.setContentText("Lat: ${"%.6f".format(lat)}  Lng: ${"%.6f".format(lng)}")
             it.setSubText(address)
-            it.setOngoing(true)          // notif tidak bisa diswipe
-            it.setAutoCancel(false)      // notif tetap muncul
+            it.setOngoing(true)
+            it.setAutoCancel(false)
             it.setCategory(Notification.CATEGORY_SERVICE)
             it.priority = NotificationCompat.PRIORITY_HIGH
             it.addAction(
@@ -418,7 +464,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
         notificationsChannel.cancelAllNotifications(this)
     }
 
-    // Get current location
     @SuppressLint("MissingPermission")
     protected fun getLastLocation() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)

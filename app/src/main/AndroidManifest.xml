@@ -32,7 +32,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -41,14 +40,12 @@
             android:name=".utils.JoystickService"
             android:exported="false" />
 
-
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDJHl2fdyya0PuEY-LRFUZM71pijfZN6IE" />
         <meta-data
             android:name="com.maplibre.AccessToken"
             android:value="pk.eyJ1IjoiZGVsdGFjaGF0IiwiYSI6ImNqc3c1aWczMzBjejY0M28wZmU0a3cwMzMifQ.ZPTH9dFJaav06RAu4rTYHw" />
-
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -79,7 +76,7 @@
             android:name=".utils.StopGpsReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="io.github.jqssun.gpssetter.ACTION_STOP_GPS" />
+                <action android:name="io.github.hengkerzero.gpscihuyy.ACTION_STOP_GPS" />
             </intent-filter>
         </receiver>
     </application>

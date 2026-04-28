@@ -1,8 +1,8 @@
 <resources>
 
     <!-- Home -->
-    <string name="app_name">GPS Setter</string>
-    <string name="xposed_desc">A GPS setter based on the Xposed framework.</string>
+    <string name="app_name">GPS Cihuyy</string>
+    <string name="xposed_desc">A GPS mock location app based on the Xposed framework.</string>
     <string name="search">Search</string>
     <string name="address">United States</string>
     <string name="favorites">Favorites</string>
@@ -22,14 +22,13 @@
 
     <!-- About -->
     <string name="about">About</string>
-    <string name="about_info">Brought to you by \n@jqssun (2024-2025) \n@Android1500 (2022-2023) \n\nA GPS setter based on the Xposed framework.</string>
+    <string name="about_info">GPS Cihuyy \n@hengkerzero (2025) \n\nA GPS mock location app based on the Xposed framework.</string>
 
     <!-- Update -->
     <string name="download_manager_description">Downloading update</string>
     <string name="update_button">Update</string>
     <string name="update_available">Update available</string>
     <string name="bs_update_download_failed">Failed</string>
-
 
     <!-- Dialog -->
     <string name="add_fav_dialog_title">Add favorite</string>

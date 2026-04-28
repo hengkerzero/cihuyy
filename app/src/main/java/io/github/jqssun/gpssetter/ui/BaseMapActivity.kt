@@ -428,10 +428,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
         awaitClose { this.cancel() }
     }
 
-    /**
-     * Reverse geocode koordinat ke nama jalan/alamat,
-     * lalu tampilkan notifikasi dengan alamat tersebut.
-     */
     protected fun showStartNotification(address: String) {
         val stopIntent = Intent(this, StopGpsReceiver::class.java).apply {
             action = StopGpsReceiver.ACTION_STOP_GPS
@@ -444,20 +440,44 @@ abstract class BaseMapActivity: AppCompatActivity() {
         val currentLat = PrefManager.getLat
         val currentLng = PrefManager.getLng
 
-        notificationsChannel.showNotification(this) {
-            it.setSmallIcon(R.drawable.ic_stop)
-            it.setContentTitle("📍 GPS Aktif")
-            it.setContentText("Lat: ${"%.6f".format(lat)}  Lng: ${"%.6f".format(lng)}")
-            it.setSubText(address)
-            it.setOngoing(true)
-            it.setAutoCancel(false)
-            it.setCategory(Notification.CATEGORY_SERVICE)
-            it.priority = NotificationCompat.PRIORITY_HIGH
-            it.addAction(
-                R.drawable.ic_stop,
-                "Stop GPS",
-                stopPendingIntent
-            )
+        // Reverse geocode di background, lalu tampilkan notif dengan nama jalan
+        lifecycleScope.launch(Dispatchers.IO) {
+            val streetAddress = try {
+                val geocoder = Geocoder(this@BaseMapActivity, Locale.getDefault())
+                val results = geocoder.getFromLocation(currentLat, currentLng, 1)
+                if (!results.isNullOrEmpty()) {
+                    val addr = results[0]
+                    val street = addr.thoroughfare ?: addr.subLocality ?: addr.locality
+                    val number = addr.featureName?.takeIf { it.all { c -> c.isDigit() } } ?: ""
+                    if (street != null) {
+                        if (number.isNotEmpty()) "$street No.$number" else street
+                    } else {
+                        addr.getAddressLine(0) ?: "Lokasi tidak diketahui"
+                    }
+                } else {
+                    "Lokasi tidak diketahui"
+                }
+            } catch (e: Exception) {
+                "Lokasi tidak diketahui"
+            }
+
+            withContext(Dispatchers.Main) {
+                notificationsChannel.showNotification(this@BaseMapActivity) {
+                    it.setSmallIcon(R.drawable.ic_stop)
+                    it.setContentTitle("📍 GPS Aktif")
+                    it.setContentText(streetAddress)
+                    it.setSubText(address)
+                    it.setOngoing(true)
+                    it.setAutoCancel(false)
+                    it.setCategory(Notification.CATEGORY_SERVICE)
+                    it.priority = NotificationCompat.PRIORITY_HIGH
+                    it.addAction(
+                        R.drawable.ic_stop,
+                        "Stop GPS",
+                        stopPendingIntent
+                    )
+                }
+            }
         }
     }
 

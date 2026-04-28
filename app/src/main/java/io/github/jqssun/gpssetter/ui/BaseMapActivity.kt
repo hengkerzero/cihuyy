@@ -440,7 +440,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
         val currentLat = PrefManager.getLat
         val currentLng = PrefManager.getLng
 
-        // Reverse geocode di background, lalu tampilkan notif dengan nama jalan
         lifecycleScope.launch(Dispatchers.IO) {
             val streetAddress = try {
                 val geocoder = Geocoder(this@BaseMapActivity, Locale.getDefault())
@@ -466,14 +465,13 @@ abstract class BaseMapActivity: AppCompatActivity() {
                     it.setSmallIcon(R.drawable.ic_stop)
                     it.setContentTitle("📍 GPS Aktif")
                     it.setContentText(streetAddress)
-                    it.setSubText(address)
                     it.setOngoing(true)
                     it.setAutoCancel(false)
                     it.setCategory(Notification.CATEGORY_SERVICE)
                     it.priority = NotificationCompat.PRIORITY_HIGH
                     it.addAction(
                         R.drawable.ic_stop,
-                        "Stop",
+                        "Stop GPS",
                         stopPendingIntent
                     )
                 }

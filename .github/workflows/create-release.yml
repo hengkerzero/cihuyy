@@ -16,7 +16,7 @@ jobs:
       - name: Create tag and publish release
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
           script: |
             const TARGET_SHA = '3f826fa155b23c773f133caa47ff54867dc08325';
             const TAG_NAME = 'v1.0.0';

@@ -50,6 +50,7 @@ import io.github.jqssun.gpssetter.ui.viewmodel.MainViewModel
 import io.github.jqssun.gpssetter.utils.JoystickService
 import io.github.jqssun.gpssetter.utils.NotificationsChannel
 import io.github.jqssun.gpssetter.utils.PrefManager
+import io.github.jqssun.gpssetter.utils.StopGpsReceiver
 import io.github.jqssun.gpssetter.utils.ext.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.awaitClose
@@ -60,7 +61,6 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 import kotlin.properties.Delegates
 import android.app.PendingIntent
-import io.github.jqssun.gpssetter.utils.StopGpsReceiver
 
 @AndroidEntryPoint
 abstract class BaseMapActivity: AppCompatActivity() {
@@ -437,6 +437,15 @@ abstract class BaseMapActivity: AppCompatActivity() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Intent buat buka app kembali saat notif di-tap
+        val openAppIntent = Intent(this, this::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val openAppPendingIntent = PendingIntent.getActivity(
+            this, 1, openAppIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val currentLat = PrefManager.getLat
         val currentLng = PrefManager.getLng
 
@@ -469,6 +478,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
                     it.setAutoCancel(false)
                     it.setCategory(Notification.CATEGORY_SERVICE)
                     it.priority = NotificationCompat.PRIORITY_HIGH
+                    it.setContentIntent(openAppPendingIntent) // tap notif → buka app
                     it.addAction(
                         R.drawable.ic_stop,
                         "Stop",

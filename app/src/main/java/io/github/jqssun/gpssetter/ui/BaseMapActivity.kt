@@ -16,7 +16,6 @@ import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.TextView
@@ -180,35 +179,12 @@ abstract class BaseMapActivity: AppCompatActivity() {
     }
 
     private fun setupNavView() {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
-            // Toolbar: tambah padding atas sesuai tinggi status bar
-            binding.toolbar.setPadding(
-                binding.toolbar.paddingLeft,
-                systemBars.top,
-                binding.toolbar.paddingRight,
-                binding.toolbar.paddingBottom
-            )
-            (binding.toolbar.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = 0
-            binding.toolbar.requestLayout()
-
-            // Tombol bawah: tambah margin bawah sesuai tinggi navigation bar
-            val bottomMarginPx = systemBars.bottom + resources.getDimensionPixelSize(R.dimen.padding_16)
-            (binding.getlocation.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
-                it.bottomMargin = bottomMarginPx
-                binding.getlocation.requestLayout()
-            }
-
-            // NavView drawer: tambah padding atas sesuai status bar
-            binding.navView.setPadding(
-                binding.navView.paddingLeft,
-                systemBars.top,
-                binding.navView.paddingRight,
-                binding.navView.paddingBottom
-            )
-
-            insets
+        binding.mapContainer.map.setOnApplyWindowInsetsListener { _, insets ->
+            val topInset: Int = insets.systemWindowInsetTop
+            val bottomInset: Int = insets.systemWindowInsetBottom
+            binding.navView.setPadding(0,topInset,0,0)
+            insets.consumeSystemWindowInsets()
         }
 
         val progress = binding.search.searchProgress

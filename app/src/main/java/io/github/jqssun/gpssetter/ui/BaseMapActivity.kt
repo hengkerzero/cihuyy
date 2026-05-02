@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.TextView
@@ -179,26 +180,33 @@ abstract class BaseMapActivity: AppCompatActivity() {
     }
 
     private fun setupNavView() {
-        // Apply window insets properly:
-        // - toolbar gets top inset (status bar height)
-        // - getlocation button gets bottom inset (navigation bar height)
-        // - navView (drawer) gets top inset for its padding
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
-            // Toolbar: push down by status bar height
-            binding.toolbar.updatePadding(top = systemBars.top)
-            binding.toolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                topMargin = 0
+            // Toolbar: tambah padding atas sesuai tinggi status bar
+            binding.toolbar.setPadding(
+                binding.toolbar.paddingLeft,
+                systemBars.top,
+                binding.toolbar.paddingRight,
+                binding.toolbar.paddingBottom
+            )
+            (binding.toolbar.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = 0
+            binding.toolbar.requestLayout()
+
+            // Tombol bawah: tambah margin bawah sesuai tinggi navigation bar
+            val bottomMarginPx = systemBars.bottom + resources.getDimensionPixelSize(R.dimen.padding_16)
+            (binding.getlocation.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                it.bottomMargin = bottomMarginPx
+                binding.getlocation.requestLayout()
             }
 
-            // Bottom buttons: push up by navigation bar height
-            binding.getlocation.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = systemBars.bottom + resources.getDimensionPixelSize(R.dimen.padding_16)
-            }
-
-            // NavView drawer: add top padding for status bar
-            binding.navView.updatePadding(top = systemBars.top)
+            // NavView drawer: tambah padding atas sesuai status bar
+            binding.navView.setPadding(
+                binding.navView.paddingLeft,
+                systemBars.top,
+                binding.navView.paddingRight,
+                binding.navView.paddingBottom
+            )
 
             insets
         }

@@ -179,12 +179,28 @@ abstract class BaseMapActivity: AppCompatActivity() {
     }
 
     private fun setupNavView() {
+        // Apply window insets properly:
+        // - toolbar gets top inset (status bar height)
+        // - getlocation button gets bottom inset (navigation bar height)
+        // - navView (drawer) gets top inset for its padding
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
-        binding.mapContainer.map.setOnApplyWindowInsetsListener { _, insets ->
-            val topInset: Int = insets.systemWindowInsetTop
-            val bottomInset: Int = insets.systemWindowInsetBottom
-            binding.navView.setPadding(0,topInset,0,0)
-            insets.consumeSystemWindowInsets()
+            // Toolbar: push down by status bar height
+            binding.toolbar.updatePadding(top = systemBars.top)
+            binding.toolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = 0
+            }
+
+            // Bottom buttons: push up by navigation bar height
+            binding.getlocation.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = systemBars.bottom + resources.getDimensionPixelSize(R.dimen.padding_16)
+            }
+
+            // NavView drawer: add top padding for status bar
+            binding.navView.updatePadding(top = systemBars.top)
+
+            insets
         }
 
         val progress = binding.search.searchProgress
@@ -437,7 +453,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Intent buat buka app kembali saat notif di-tap
         val openAppIntent = Intent(this, this::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -478,7 +493,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
                     it.setAutoCancel(false)
                     it.setCategory(Notification.CATEGORY_SERVICE)
                     it.priority = NotificationCompat.PRIORITY_HIGH
-                    it.setContentIntent(openAppPendingIntent) // tap notif → buka app
+                    it.setContentIntent(openAppPendingIntent)
                     it.addAction(
                         R.drawable.ic_stop,
                         "Stop",

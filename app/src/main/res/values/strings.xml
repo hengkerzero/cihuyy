@@ -16,11 +16,6 @@
     <string name="getlocation_desc">Get current location</string>
     <string name="addfavorite_desc">Add favorite</string>
 
-    <!-- Bottom Sheet -->
-    <string name="current_location">Current location</string>
-    <string name="fetching_address">Fetching address…</string>
-    <string name="coordinates_placeholder">Lat: -, Lng: -</string>
-
     <!-- Errors -->
     <string name="error_xposed_module_missing">Xposed module is not enabled</string>
     <string name="error_xposed_module_missing_desc">Enable this module in LSPosed Manager</string>
@@ -34,6 +29,7 @@
     <string name="update_button">Update</string>
     <string name="update_available">Update available</string>
     <string name="bs_update_download_failed">Failed</string>
+
 
     <!-- Dialog -->
     <string name="add_fav_dialog_title">Add favorite</string>

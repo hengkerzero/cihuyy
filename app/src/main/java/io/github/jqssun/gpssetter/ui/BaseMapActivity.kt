@@ -135,6 +135,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
     }
 
     private fun applyWindowInsets() {
+        val dp16 = (16 * resources.displayMetrics.density).toInt()
         ViewCompat.setOnApplyWindowInsetsListener(binding.toolbar) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.updatePadding(top = insets.top)
@@ -148,7 +149,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.getlocation) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.updateLayoutParams<android.widget.RelativeLayout.LayoutParams> {
-                bottomMargin = insets.bottom + resources.getDimensionPixelSize(R.dimen.button_margin_bottom)
+                bottomMargin = insets.bottom + dp16
             }
             windowInsets
         }

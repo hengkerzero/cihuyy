@@ -121,6 +121,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
             setContentView(binding.root)
         }
         setSupportActionBar(binding.toolbar)
+        applyWindowInsets()
         initializeMap()
         checkModuleEnabled()
         checkUpdates()
@@ -130,6 +131,26 @@ abstract class BaseMapActivity: AppCompatActivity() {
         askNotificationPermission()
         if (PrefManager.isJoystickEnabled){
             startService(Intent(this, JoystickService::class.java))
+        }
+    }
+
+    private fun applyWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.toolbar) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(top = insets.top)
+            view.updateLayoutParams<androidx.appcompat.widget.Toolbar.LayoutParams> {
+                height = resources.getDimensionPixelSize(
+                    com.google.android.material.R.dimen.m3_appbar_size_compact
+                ) + insets.top
+            }
+            windowInsets
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getlocation) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updateLayoutParams<android.widget.RelativeLayout.LayoutParams> {
+                bottomMargin = insets.bottom + resources.getDimensionPixelSize(R.dimen.button_margin_bottom)
+            }
+            windowInsets
         }
     }
 

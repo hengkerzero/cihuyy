@@ -14,7 +14,8 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="wrap_content"
+            android:minHeight="?attr/actionBarSize"
             android:elevation="1dp"
             app:navigationIcon="@drawable/ic_baseline_menu_24"/>
 
@@ -23,9 +24,9 @@
             layout="@layout/include_search"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
+            android:layout_below="@id/toolbar"
             android:layout_marginStart="18dp"
-            android:layout_marginTop="72dp"
+            android:layout_marginTop="8dp"
             android:layout_marginEnd="18dp"
             android:layout_marginBottom="72dp"
             android:gravity="center_vertical"

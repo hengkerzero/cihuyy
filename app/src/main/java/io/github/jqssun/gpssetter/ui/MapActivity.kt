@@ -4,11 +4,13 @@ package io.github.jqssun.gpssetter.ui
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.view.View
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.MapStyleOptions
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -35,13 +37,34 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
         }
         return false
     }
+
     private fun updateMarker(it: LatLng) {
         mMarker?.position = it!!
         mMarker?.isVisible = true
     }
+
     private fun removeMarker() {
         mMarker?.isVisible = false
     }
+
+    private fun isDarkMode(): Boolean {
+        return (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+    }
+
+    private fun applyMapTheme() {
+        if (!::mMap.isInitialized) return
+        if (isDarkMode()) {
+            mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style_dark))
+        } else {
+            mMap.setMapStyle(null)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyMapTheme()
+    }
+
     override fun initializeMap() {
         val mapFragment = SupportMapFragment.newInstance()
         supportFragmentManager.beginTransaction()
@@ -49,6 +72,7 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             .commit()
         mapFragment?.getMapAsync(this)
     }
+
     override fun moveMapToNewLocation(moveNewLocation: Boolean) {
         if (moveNewLocation) {
             mLatLng = LatLng(lat, lon)
@@ -69,11 +93,13 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             }
         }
     }
+
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         with(mMap){
 
-            
+            applyMapTheme()
+
             // gms custom ui
             if (ActivityCompat.checkSelfPermission(this@MapActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) { 
                 setMyLocationEnabled(true); 
@@ -87,7 +113,6 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             setPadding(0,80,0,0)
             mapType = viewModel.mapType
 
-
             val zoom = 17.0f
             lat = viewModel.getLat
             lon  = viewModel.getLng
@@ -99,7 +124,6 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, zoom))
             }
 
-            
             setOnMapClickListener(this@MapActivity)
             if (viewModel.isStarted){
                 mMarker?.let {
@@ -110,6 +134,7 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             }
         }
     }
+
     override fun onMapClick(latLng: LatLng) {
         mLatLng = latLng
         mMarker?.let { marker ->

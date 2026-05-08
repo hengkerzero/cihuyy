@@ -169,14 +169,13 @@ class ActivitySettings : AppCompatActivity() {
         }
 
         private fun isJoystickRunning(): Boolean {
-            var isRunning = false
             val manager = requireContext().getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager? ?: return false
             for (service in manager.getRunningServices(Int.MAX_VALUE)) {
                 if ("io.github.jqssun.gpssetter.utils.JoystickService" == service.service.className) {
-                    isRunning = true
+                    return true
                 }
             }
-            return isRunning
+            return false
         }
 
 

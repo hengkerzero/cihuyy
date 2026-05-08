@@ -23,9 +23,8 @@ class FavoriteRepository @Inject constructor(private val favoriteDao: FavoriteDa
        }
 
 
-       fun getSingleFavorite(id: Long) : Favorite {
-       return favoriteDao.getSingleFavorite(id)
-
-    }
+       fun getAllFavoriteIds() : List<Long> {
+           return favoriteDao.getAllFavoriteIds()
+       }
 
 }

@@ -22,9 +22,8 @@ interface FavoriteDao {
         @Query("SELECT * FROM favorite ORDER BY id DESC")
         fun getAllFavorites() : Flow<List<Favorite>>
 
-        //get single favorite inserted to room database
         @Transaction
-        @Query("SELECT * FROM favorite WHERE id = :id ORDER BY id DESC")
-        fun getSingleFavorite(id: Long) : Favorite
+        @Query("SELECT id FROM favorite ORDER BY id ASC")
+        fun getAllFavoriteIds() : List<Long>
 
 }

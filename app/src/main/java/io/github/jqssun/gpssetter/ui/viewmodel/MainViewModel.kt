@@ -90,9 +90,6 @@ class MainViewModel @Inject constructor(
         favoriteRepository.deleteFavorite(favorite)
     }
 
-    private fun getFavoriteSingle(i : Int) : Favorite {
-        return favoriteRepository.getSingleFavorite(i.toLong())
-    }
 
 
     private val _update = MutableStateFlow<UpdateChecker.Update?>(null).apply {
@@ -237,17 +234,16 @@ class MainViewModel @Inject constructor(
         lon: Double
     ) = onIO {
 
-            val slot: Int
-            var i = 0
-            while (true) {
-                if(getFavoriteSingle(i) == null) {
-                    slot = i
+            var slot: Long = 0
+            val ids = favoriteRepository.getAllFavoriteIds()
+            for (id in ids) {
+                if (id == slot) {
+                    slot++
+                } else if (id > slot) {
                     break
-                } else {
-                    i++
                 }
-        }
-         insertNewFavorite(Favorite(id = slot.toLong(), address = address, lat = lat, lng = lon))
+            }
+         insertNewFavorite(Favorite(id = slot, address = address, lat = lat, lng = lon))
     }
 
 

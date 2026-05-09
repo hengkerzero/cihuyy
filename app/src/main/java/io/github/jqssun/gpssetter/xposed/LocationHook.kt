@@ -84,6 +84,7 @@ object LocationHook {
     }
 
     // ─── Hook GMS / Google Play Services (FusedLocationProviderClient) ───────────
+    // Hanya hook LocationResult (output ke client), TIDAK hook Location class internal GMS
     private fun hookGmsFused(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (!settings.isStarted) return
 
@@ -137,30 +138,6 @@ object LocationHook {
             )
         } catch (e: Throwable) {
             XposedBridge.log("GMS hook getLocations failed: $e")
-        }
-
-        // Hook android.location.Location di dalam proses GMS (fallback)
-        try {
-            val LocationClass = XposedHelpers.findClass(
-                "android.location.Location",
-                lpparam.classLoader
-            )
-            for (method in LocationClass.declaredMethods) {
-                when (method.name) {
-                    "getLatitude" -> XposedBridge.hookMethod(method, object : XC_MethodHook() {
-                        override fun beforeHookedMethod(param: MethodHookParam) {
-                            if (settings.isStarted) param.result = newlat
-                        }
-                    })
-                    "getLongitude" -> XposedBridge.hookMethod(method, object : XC_MethodHook() {
-                        override fun beforeHookedMethod(param: MethodHookParam) {
-                            if (settings.isStarted) param.result = newlng
-                        }
-                    })
-                }
-            }
-        } catch (e: Throwable) {
-            XposedBridge.log("GMS Location class hook failed: $e")
         }
     }
 

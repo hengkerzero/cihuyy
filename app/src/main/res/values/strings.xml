@@ -34,6 +34,7 @@
     <!-- Dialog -->
     <string name="add_fav_dialog_title">Add favorite</string>
     <string name="dialog_button_add">Add</string>
+    <string name="favorite_name_hint">Location name</string>
     <string name="location_not_select">Location not selected</string>
     <string name="save">Save</string>
 

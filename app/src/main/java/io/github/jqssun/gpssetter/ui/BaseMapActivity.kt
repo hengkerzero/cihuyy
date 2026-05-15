@@ -494,6 +494,17 @@ abstract class BaseMapActivity: AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     protected fun getLastLocation() {
+        // Kalau GPS spoof aktif, langsung pakai koordinat dari PrefManager
+        // JANGAN tanya ke FusedLocationClient — dia minta ke GMS yang bypass Xposed hook
+        // sehingga bisa bocor lokasi asli ke cache SFD
+        if (PrefManager.isStarted) {
+            lat = PrefManager.getLat
+            lon = PrefManager.getLng
+            moveMapToNewLocation(true)
+            return
+        }
+
+        // GPS spoof tidak aktif — pakai lokasi asli seperti biasa
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         if (checkPermissions()) {
             if (isLocationEnabled()) {
@@ -519,6 +530,14 @@ abstract class BaseMapActivity: AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun requestNewLocationData() {
+        // Sama: kalau spoof aktif jangan request ke FusedLocationClient
+        if (PrefManager.isStarted) {
+            lat = PrefManager.getLat
+            lon = PrefManager.getLng
+            moveMapToNewLocation(true)
+            return
+        }
+
         val mLocationRequest = LocationRequest()
         mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         mLocationRequest.interval = 0

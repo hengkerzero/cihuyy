@@ -1,9 +1,10 @@
 package io.github.jqssun.gpssetter.ui
 
-
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.view.View
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
@@ -17,17 +18,78 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import io.github.jqssun.gpssetter.R
+import io.github.jqssun.gpssetter.utils.MapsDeepLinkHandler
 import io.github.jqssun.gpssetter.utils.ext.getAddress
 import io.github.jqssun.gpssetter.utils.ext.showToast
 import kotlinx.coroutines.launch
 
 typealias CustomLatLng = LatLng
 
-class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickListener {
+class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickListener {
 
     private lateinit var mMap: GoogleMap
     private var mLatLng: LatLng? = null
     private var mMarker: Marker? = null
+
+    // ─── Deep Link ────────────────────────────────────────────────────────────
+
+    /**
+     * Dipanggil saat Activity pertama kali dibuka VIA intent (termasuk deep link).
+     * onCreate() sudah dipanggil sebelumnya di BaseMapActivity, jadi kita override
+     * onNewIntent() untuk menangani kasus Activity sudah berjalan (singleTop/singleTask).
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.data?.let { uri -> handleDeepLink(uri) }
+    }
+
+    /**
+     * Handle deep link dari GMaps saat Activity baru dibuka (bukan resume).
+     * Dipanggil dari onMapReady() setelah peta siap.
+     */
+    private fun handleDeepLinkOnStart() {
+        intent?.data?.let { uri -> handleDeepLink(uri) }
+    }
+
+    private fun handleDeepLink(uri: Uri) {
+        val parsed = MapsDeepLinkHandler.parse(uri) ?: run {
+            showToast("Format link GMaps tidak dikenali")
+            return
+        }
+        moveToDeepLinkLocation(parsed.lat, parsed.lng, parsed.label)
+    }
+
+    /**
+     * Pindahkan kamera + marker ke koordinat dari deep link.
+     */
+    private fun moveToDeepLinkLocation(targetLat: Double, targetLng: Double, label: String?) {
+        if (!::mMap.isInitialized) return
+        val target = LatLng(targetLat, targetLng)
+        lat = targetLat
+        lon = targetLng
+        mLatLng = target
+        mMarker?.apply {
+            position = target
+            isVisible = true
+            title = label ?: "Lokasi dari GMaps"
+            showInfoWindow()
+        }
+        mMap.animateCamera(
+            CameraUpdateFactory.newCameraPosition(
+                CameraPosition.Builder()
+                    .target(target)
+                    .zoom(17.0f)
+                    .bearing(0f)
+                    .tilt(0f)
+                    .build()
+            )
+        )
+        val labelText = if (!label.isNullOrBlank()) "\"$label\"" else "koordinat $targetLat, $targetLng"
+        showToast("📍 Lokasi dari GMaps: $labelText")
+    }
+
+    // ─── Existing code (tidak diubah) ────────────────────────────────────────
 
     override fun hasMarker(): Boolean {
         if (!mMarker?.isVisible!!) {
@@ -35,13 +97,16 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
         }
         return false
     }
+
     private fun updateMarker(it: LatLng) {
-        mMarker?.position = it!!
+        mMarker?.position = it
         mMarker?.isVisible = true
     }
+
     private fun removeMarker() {
         mMarker?.isVisible = false
     }
+
     override fun initializeMap() {
         val mapFragment = SupportMapFragment.newInstance()
         supportFragmentManager.beginTransaction()
@@ -49,18 +114,21 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             .commit()
         mapFragment?.getMapAsync(this)
     }
+
     override fun moveMapToNewLocation(moveNewLocation: Boolean) {
         if (moveNewLocation) {
             mLatLng = LatLng(lat, lon)
             mLatLng.let { latLng ->
-                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
+                mMap.animateCamera(
+                    CameraUpdateFactory.newCameraPosition(
                         CameraPosition.Builder()
-                        .target(latLng!!)
-                        .zoom(17.0f)
-                        .bearing(0f)
-                        .tilt(0f)
-                        .build()
-                ))
+                            .target(latLng!!)
+                            .zoom(17.0f)
+                            .bearing(0f)
+                            .tilt(0f)
+                            .build()
+                    )
+                )
                 mMarker?.apply {
                     position = latLng
                     isVisible = true
@@ -69,39 +137,47 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             }
         }
     }
+
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-        with(mMap){
-
-            
-            // gms custom ui
-            if (ActivityCompat.checkSelfPermission(this@MapActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) { 
-                setMyLocationEnabled(true); 
+        with(mMap) {
+            if (ActivityCompat.checkSelfPermission(
+                    this@MapActivity,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                setMyLocationEnabled(true)
             } else {
-                ActivityCompat.requestPermissions(this@MapActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 99);
+                ActivityCompat.requestPermissions(
+                    this@MapActivity,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    99
+                )
             }
             setTrafficEnabled(true)
             uiSettings.isMyLocationButtonEnabled = false
             uiSettings.isZoomControlsEnabled = false
             uiSettings.isCompassEnabled = false
-            setPadding(0,80,0,0)
+            setPadding(0, 80, 0, 0)
             mapType = viewModel.mapType
-
 
             val zoom = 17.0f
             lat = viewModel.getLat
-            lon  = viewModel.getLng
+            lon = viewModel.getLng
             mLatLng = LatLng(lat, lon)
             mLatLng.let {
                 mMarker = addMarker(
-                    MarkerOptions().position(it!!).draggable(false).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).visible(false)
+                    MarkerOptions()
+                        .position(it!!)
+                        .draggable(false)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                        .visible(false)
                 )
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, zoom))
             }
 
-            
             setOnMapClickListener(this@MapActivity)
-            if (viewModel.isStarted){
+            if (viewModel.isStarted) {
                 mMarker?.let {
                     // TODO:
                     // it.isVisible = true
@@ -109,12 +185,15 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
                 }
             }
         }
+
+        // Setelah peta siap, cek apakah ada deep link dari GMaps
+        handleDeepLinkOnStart()
     }
+
     override fun onMapClick(latLng: LatLng) {
         mLatLng = latLng
         mMarker?.let { marker ->
             mLatLng.let {
-                // marker.isVisible = true
                 updateMarker(it!!)
                 mMap.animateCamera(CameraUpdateFactory.newLatLng(it))
                 lat = it.latitude
@@ -128,7 +207,7 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
     }
 
     @SuppressLint("MissingPermission")
-    override fun setupButtons(){
+    override fun setupButtons() {
         binding.favoriteList.setOnClickListener {
             openFavoriteListDialog()
         }
@@ -153,7 +232,7 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             binding.stopButton.visibility = View.VISIBLE
             lifecycleScope.launch {
                 mLatLng?.getAddress(getActivityInstance())?.let { address ->
-                    address.collect{ value ->
+                    address.collect { value ->
                         showStartNotification(value)
                     }
                 }

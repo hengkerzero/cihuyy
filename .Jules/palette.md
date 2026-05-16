@@ -1,0 +1,3 @@
+## 2024-05-18 - Tooltips and Decorator Accessibility in Android XML Layouts
+**Learning:** This Android app uses traditional XML layouts (minSdk 27), which natively supports `android:tooltipText` for icon-only MaterialButtons. Additionally, we discovered decorative ImageViews (like logos) in `about.xml` and `drawer_header.xml` that needed `android:importantForAccessibility="no"` to prevent unnecessary screen reader chatter.
+**Action:** Always check `android:importantForAccessibility` on non-interactive, decorative ImageViews, and leverage `android:tooltipText` natively without wrappers for APIs >= 26. Make sure to delete any command output files before submitting!

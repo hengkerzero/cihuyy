@@ -1,0 +1,3 @@
+## 2024-05-17 - Added Tooltips to Icon-Only Buttons
+**Learning:** This Android app targets SDK 34 and minSdk 27, meaning we can natively use `android:tooltipText` (introduced in API 26) without compatibility wrappers. Adding tooltips that mirror `contentDescription` is a quick, native way to improve discoverability for icon-only MaterialButtons and ImageViews, making actions like "get location" or "delete favorite" much clearer on hover/long-press.
+**Action:** Always check icon-only elements for missing `tooltipText` when making accessibility passes in XML layouts, especially if `contentDescription` is already present.

@@ -1,0 +1,116 @@
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources
+> Task :app:mergeDebugResources
+> Task :app:packageDebugResources
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:parseDebugLocalResources
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:processDebugResources
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltAggregateDepsDebug UP-TO-DATE
+> Task :app:hiltJavaCompileDebug UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:generateDebugAndroidTestLintModel UP-TO-DATE
+> Task :app:generateDebugLintReportModel
+> Task :app:generateDebugUnitTestLintModel UP-TO-DATE
+> Task :app:lintAnalyzeDebugAndroidTest UP-TO-DATE
+> Task :app:lintAnalyzeDebugUnitTest UP-TO-DATE
+> Task :app:lintAnalyzeDebug
+> Task :app:lintReportDebug UP-TO-DATE
+
+> Task :app:lintDebug FAILED
+Lint found 1 errors, 36 warnings. First failure:
+
+/app/app/src/main/java/io/github/jqssun/gpssetter/ui/viewmodel/MainViewModel.kt:186: Error: downloadStateReceiver is missing RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED flag for unprotected broadcasts registered for android.intent.action.DOWNLOAD_COMPLETE [UnspecifiedRegisterReceiverFlag]
+        context.registerReceiver(downloadStateReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UnspecifiedRegisterReceiverFlag":
+   In Android U, all receivers registering for non-system broadcasts are
+   required to include a flag indicating the receiver's exported state. Apps
+   registering for non-system broadcasts should use the
+   ContextCompat#registerReceiver APIs with flags set to either
+   RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED.
+
+   If you are not expecting broadcasts from other apps on the device, register
+   your receiver with RECEIVER_NOT_EXPORTED to protect your receiver on all
+   platform releases.
+
+   https://developer.android.com/reference/androidx/core/content/ContextCompat#registerReceiver(android.content.Context,android.content.BroadcastReceiver,android.content.IntentFilter,int)
+
+
+The full lint text report is located at:
+  /app/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:lintDebug'.
+> Lint found errors in the project; aborting build.
+
+  Fix the issues identified by lint, or create a baseline to see only new errors.
+  To create a baseline, run `gradlew updateLintBaseline` after adding the following to the module's build.gradle file:
+  ```
+  android {
+      lint {
+          baseline = file("lint-baseline.xml")
+      }
+  }
+  ```
+  For more details, see https://developer.android.com/studio/write/lint#snapshot
+
+  Lint found 1 errors, 36 warnings. First failure:
+
+  /app/app/src/main/java/io/github/jqssun/gpssetter/ui/viewmodel/MainViewModel.kt:186: Error: downloadStateReceiver is missing RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED flag for unprotected broadcasts registered for android.intent.action.DOWNLOAD_COMPLETE [UnspecifiedRegisterReceiverFlag]
+          context.registerReceiver(downloadStateReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+     Explanation for issues of type "UnspecifiedRegisterReceiverFlag":
+     In Android U, all receivers registering for non-system broadcasts are
+     required to include a flag indicating the receiver's exported state. Apps
+     registering for non-system broadcasts should use the
+     ContextCompat#registerReceiver APIs with flags set to either
+     RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED.
+
+     If you are not expecting broadcasts from other apps on the device, register
+     your receiver with RECEIVER_NOT_EXPORTED to protect your receiver on all
+     platform releases.
+
+     https://developer.android.com/reference/androidx/core/content/ContextCompat#registerReceiver(android.content.Context,android.content.BroadcastReceiver,android.content.IntentFilter,int)
+
+
+  The full lint text report is located at:
+    /app/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.9/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 24s
+33 actionable tasks: 10 executed, 23 up-to-date

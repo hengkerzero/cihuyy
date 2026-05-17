@@ -14,6 +14,7 @@ import android.os.Looper
 import androidx.core.content.FileProvider
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -183,7 +184,12 @@ class MainViewModel @Inject constructor(
             mkdirs()
         }
         downloadFile = File(downloadFolder, fileName)
-        context.registerReceiver(downloadStateReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        ContextCompat.registerReceiver(
+            context,
+            downloadStateReceiver,
+            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+            ContextCompat.RECEIVER_EXPORTED
+        )
         context.contentResolver.registerContentObserver(Uri.parse("content://downloads/my_downloads"), true, downloadObserver)
         requestId = DownloadManager.Request(Uri.parse(url)).apply {
             setDescription(context.getString(R.string.download_manager_description))

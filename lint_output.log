@@ -1,0 +1,157 @@
+Downloading https://services.gradle.org/distributions/gradle-8.9-bin.zip
+............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%.............100%
+
+Welcome to Gradle 8.9!
+
+Here are the highlights of this release:
+ - Enhanced Error and Warning Messages
+ - IDE Integration Improvements
+ - Daemon JVM Information
+
+For more details see https://docs.gradle.org/8.9/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugResValues
+> Task :app:dataBindingMergeDependencyArtifactsDebug
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:mergeDebugResources
+> Task :app:generateDebugBuildConfig
+> Task :app:parseDebugLocalResources
+> Task :app:checkDebugAarMetadata
+> Task :app:dataBindingGenBaseClassesDebug
+> Task :app:mapDebugSourceSetPaths
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:generateDebugAndroidTestResValues
+> Task :app:processDebugManifestForPackage
+> Task :app:javaPreCompileDebug
+> Task :app:extractProguardFiles
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:processDebugResources
+> Task :app:kspDebugKotlin
+
+> Task :app:compileDebugKotlin
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:120:24 'fun launchWhenCreated(block: suspend CoroutineScope.() -> Unit): Job' is deprecated. launchWhenCreated is deprecated as it can lead to wasted resources in some cases. Replace with suspending repeatOnLifecycle to run the block whenever the Lifecycle state is at least Lifecycle.State.CREATED.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:178:27 'fun setDrawerListener(p0: DrawerLayout.DrawerListener!): Unit' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:184:40 'val systemWindowInsetTop: Int' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:185:43 'val systemWindowInsetBottom: Int' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:187:20 'fun consumeSystemWindowInsets(): WindowInsets' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:338:24 'fun launchWhenResumed(block: suspend CoroutineScope.() -> Unit): Job' is deprecated. launchWhenResumed is deprecated as it can lead to wasted resources in some cases. Replace with suspending repeatOnLifecycle to run the block whenever the Lifecycle state is at least Lifecycle.State.RESUMED.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:413:60 'fun getFromLocationName(p0: String, p1: Int): (Mutable)List<Address!>?' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:454:40 'fun getFromLocation(p0: Double, p1: Double, p2: Int): (Mutable)List<Address!>?' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:522:32 'constructor(): LocationRequest' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:523:26 'var priority: Int' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:523:53 'static field PRIORITY_HIGH_ACCURACY: Int' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:524:26 'var interval: Long' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:525:26 'var fastestInterval: Long' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/BaseMapActivity.kt:526:26 'var numUpdates: Int' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/SettingsActivity.kt:174:37 'fun getRunningServices(p0: Int): (Mutable)List<ActivityManager.RunningServiceInfo!>!' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/ui/viewmodel/MainViewModel.kt:243:20 Condition is always 'false'.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/update/UpdateChecker.kt:80:5 Parcelize annotations from package 'kotlinx.android.parcel' are deprecated. Change package to 'kotlinx.parcelize'.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/utils/PrefManager.kt:35:25 'static field MODE_WORLD_READABLE: Int' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/io/github/jqssun/gpssetter/utils/ext/Ext+LatLng.kt:14:52 'fun getFromLocation(p0: Double, p1: Double, p2: Int): (Mutable)List<Address!>?' is deprecated. Deprecated in Java.
+
+> Task :app:compileDebugJavaWithJavac
+
+> Task :app:hiltAggregateDepsDebug
+WARNING: [Processor] Library '/home/jules/.gradle/caches/8.9/transforms/f1d10b1e978ebbc8e235b488e95981ba/transformed/core-1.13.0-api.jar' contains references to both AndroidX and old support library. This seems like the library is partially migrated. Jetifier will try to rewrite the library anyway.
+ Example of androidX reference: 'androidx/core/util/Supplier'
+ Example of support library reference: 'android/support/v4/app/INotificationSideChannel$Default'
+
+> Task :app:hiltJavaCompileDebug
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:generateDebugLintReportModel
+> Task :app:generateDebugAndroidTestLintModel
+> Task :app:generateDebugUnitTestLintModel
+> Task :app:lintAnalyzeDebug
+> Task :app:lintAnalyzeDebugAndroidTest
+> Task :app:lintAnalyzeDebugUnitTest
+
+> Task :app:lintReportDebug
+Wrote HTML report to file:///app/app/build/reports/lint-results-debug.html
+
+> Task :app:lintDebug FAILED
+Lint found 1 errors, 36 warnings. First failure:
+
+/app/app/src/main/java/io/github/jqssun/gpssetter/ui/viewmodel/MainViewModel.kt:186: Error: downloadStateReceiver is missing RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED flag for unprotected broadcasts registered for android.intent.action.DOWNLOAD_COMPLETE [UnspecifiedRegisterReceiverFlag]
+        context.registerReceiver(downloadStateReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UnspecifiedRegisterReceiverFlag":
+   In Android U, all receivers registering for non-system broadcasts are
+   required to include a flag indicating the receiver's exported state. Apps
+   registering for non-system broadcasts should use the
+   ContextCompat#registerReceiver APIs with flags set to either
+   RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED.
+
+   If you are not expecting broadcasts from other apps on the device, register
+   your receiver with RECEIVER_NOT_EXPORTED to protect your receiver on all
+   platform releases.
+
+   https://developer.android.com/reference/androidx/core/content/ContextCompat#registerReceiver(android.content.Context,android.content.BroadcastReceiver,android.content.IntentFilter,int)
+
+
+The full lint text report is located at:
+  /app/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:lintDebug'.
+> Lint found errors in the project; aborting build.
+
+  Fix the issues identified by lint, or create a baseline to see only new errors.
+  To create a baseline, run `gradlew updateLintBaseline` after adding the following to the module's build.gradle file:
+  ```
+  android {
+      lint {
+          baseline = file("lint-baseline.xml")
+      }
+  }
+  ```
+  For more details, see https://developer.android.com/studio/write/lint#snapshot
+
+  Lint found 1 errors, 36 warnings. First failure:
+
+  /app/app/src/main/java/io/github/jqssun/gpssetter/ui/viewmodel/MainViewModel.kt:186: Error: downloadStateReceiver is missing RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED flag for unprotected broadcasts registered for android.intent.action.DOWNLOAD_COMPLETE [UnspecifiedRegisterReceiverFlag]
+          context.registerReceiver(downloadStateReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+     Explanation for issues of type "UnspecifiedRegisterReceiverFlag":
+     In Android U, all receivers registering for non-system broadcasts are
+     required to include a flag indicating the receiver's exported state. Apps
+     registering for non-system broadcasts should use the
+     ContextCompat#registerReceiver APIs with flags set to either
+     RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED.
+
+     If you are not expecting broadcasts from other apps on the device, register
+     your receiver with RECEIVER_NOT_EXPORTED to protect your receiver on all
+     platform releases.
+
+     https://developer.android.com/reference/androidx/core/content/ContextCompat#registerReceiver(android.content.Context,android.content.BroadcastReceiver,android.content.IntentFilter,int)
+
+
+  The full lint text report is located at:
+    /app/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.9/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 3m 46s
+33 actionable tasks: 33 executed

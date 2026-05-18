@@ -28,6 +28,7 @@
         android:src="@drawable/ic_delete"
         android:layout_marginEnd="@dimen/padding_16"
         android:contentDescription="@string/delete_favorite_item"
+        android:tooltipText="@string/delete_favorite_item"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:clickable="true"/>
 

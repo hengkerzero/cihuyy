@@ -183,7 +183,7 @@ class MainViewModel @Inject constructor(
             mkdirs()
         }
         downloadFile = File(downloadFolder, fileName)
-        context.registerReceiver(downloadStateReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        androidx.core.content.ContextCompat.registerReceiver(context, downloadStateReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
         context.contentResolver.registerContentObserver(Uri.parse("content://downloads/my_downloads"), true, downloadObserver)
         requestId = DownloadManager.Request(Uri.parse(url)).apply {
             setDescription(context.getString(R.string.download_manager_description))

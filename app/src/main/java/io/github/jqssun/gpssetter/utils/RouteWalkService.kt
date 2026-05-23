@@ -191,6 +191,13 @@ class RouteWalkService : Service() {
         isWalking = false
         isPaused = false
         walkJob?.cancel()
+
+        // PENTING: Reset GPS state supaya isStarted = false
+        // Ini mencegah bug "Stop GPS dulu" saat mau switch mode
+        val lastLat = PrefManager.getLat
+        val lastLng = PrefManager.getLng
+        PrefManager.update(false, lastLat, lastLng)
+
         broadcastState(STATE_FINISHED)
         broadcastFinished()
         stopForeground(STOP_FOREGROUND_REMOVE)

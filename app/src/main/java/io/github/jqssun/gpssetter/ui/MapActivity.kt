@@ -30,6 +30,7 @@ import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.material.slider.Slider
 import io.github.jqssun.gpssetter.R
 import io.github.jqssun.gpssetter.utils.OsrmRouteHelper
+import io.github.jqssun.gpssetter.utils.PrefManager
 import io.github.jqssun.gpssetter.utils.RouteResult
 import io.github.jqssun.gpssetter.utils.RouteWalkService
 import io.github.jqssun.gpssetter.utils.ext.getAddress
@@ -527,6 +528,10 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
         binding.walkActionButtons.visibility = View.GONE
         binding.walkSpeedLayout.visibility = View.GONE
+
+        // Force reset GPS state agar tidak stuck "Stop GPS dulu"
+        // Service sudah set isStarted=false, tapi untuk safety kita juga set disini
+        viewModel.update(false, PrefManager.getLat, PrefManager.getLng)
     }
 
     private fun onWalkStateChanged(state: String?) {
@@ -571,17 +576,21 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         resetWalkState()
 
         binding.walkControlsPanel.visibility = View.GONE
-        binding.startButton.visibility = if (viewModel.isStarted) View.GONE else View.VISIBLE
-        binding.stopButton.visibility = if (viewModel.isStarted) View.VISIBLE else View.GONE
+
+        // Cek langsung dari PrefManager (fresh state)
+        val gpsActive = PrefManager.isStarted
+        binding.startButton.visibility = if (gpsActive) View.GONE else View.VISIBLE
+        binding.stopButton.visibility = if (gpsActive) View.VISIBLE else View.GONE
         binding.addfavorite.visibility = View.VISIBLE
         binding.favoriteList.visibility = View.VISIBLE
         binding.modeToggleCard.visibility = View.VISIBLE
 
-        Log.d(TAG, "Mode: NORMAL")
+        Log.d(TAG, "Mode: NORMAL (gpsActive=$gpsActive)")
     }
 
     private fun switchToWalkMode() {
-        if (viewModel.isStarted) {
+        // Cek langsung dari PrefManager (bukan viewModel yang bisa stale)
+        if (PrefManager.isStarted) {
             showToast("Stop GPS dulu")
             binding.chipNormal.isChecked = true
             return
@@ -608,6 +617,12 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         binding.favoriteList.setOnClickListener { openFavoriteListDialog() }
         binding.addfavorite.setOnClickListener { addFavoriteDialog() }
         binding.getlocation.setOnClickListener { getLastLocation() }
+
+        // Long press getlocation = force reset semua state (solusi darurat)
+        binding.getlocation.setOnLongClickListener {
+            forceResetAllState()
+            true
+        }
 
         if (viewModel.isStarted) {
             binding.startButton.visibility = View.GONE
@@ -700,6 +715,66 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         } else {
             registerReceiver(walkReceiver, filter)
         }
+    }
+
+    /**
+     * Force reset semua state: GPS, walk, UI.
+     * Dipanggil via long-press tombol lokasi sebagai "emergency reset".
+     * Berguna saat state jadi stuck (tombol hilang, mode ga bisa switch, dll).
+     */
+    private fun forceResetAllState() {
+        // 1. Stop walk service jika masih jalan
+        try {
+            startService(Intent(this, RouteWalkService::class.java).apply {
+                action = RouteWalkService.ACTION_STOP
+            })
+        } catch (_: Exception) {}
+
+        // 2. Force reset PrefManager — GPS off
+        PrefManager.update(false, PrefManager.getLat, PrefManager.getLng)
+
+        // 3. Reset walk state
+        walkState = WalkState.IDLE
+        walkStartLatLng = null
+        walkFinishLatLng = null
+        walkRoutePoints = emptyList()
+        routeFetchJob?.cancel()
+        walkStartMarker?.remove()
+        walkStartMarker = null
+        walkFinishMarker?.remove()
+        walkFinishMarker = null
+        walkPolyline?.remove()
+        walkPolyline = null
+
+        // 4. Force mode ke NORMAL
+        appMode = AppMode.NORMAL
+        binding.chipNormal.isChecked = true
+
+        // 5. Reset semua UI visibility
+        binding.walkControlsPanel.visibility = View.GONE
+        binding.walkSpeedLayout.visibility = View.GONE
+        binding.walkActionButtons.visibility = View.GONE
+        binding.walkProgressLayout.visibility = View.GONE
+        binding.speedSlider.isEnabled = true
+        binding.btnWalkPlay.text = "Mulai"
+        binding.btnWalkPlay.setIconResource(R.drawable.ic_play)
+        binding.walkHintText.text = "Tap peta untuk titik START"
+        binding.walkProgressBar.progress = 0
+        binding.walkProgressText.text = "0%"
+
+        // 6. Show tombol normal
+        binding.startButton.visibility = View.VISIBLE
+        binding.stopButton.visibility = View.GONE
+        binding.addfavorite.visibility = View.VISIBLE
+        binding.favoriteList.visibility = View.VISIBLE
+        binding.modeToggleCard.visibility = View.VISIBLE
+
+        // 7. Remove marker
+        removeMarker()
+        cancelNotification()
+
+        showToast("State direset! Semua kembali normal.")
+        Log.d(TAG, "Force reset all state complete")
     }
 
     override fun onDestroy() {

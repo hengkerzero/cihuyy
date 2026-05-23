@@ -34,9 +34,12 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
 
     private var intentLat: Double? = null
     private var intentLng: Double? = null
+    private var intentPlaceName: String? = null
 
     // Regex untuk ekstrak koordinat: angka negatif/positif dengan desimal
     private val coordRegex = Pattern.compile("(-?\\d+\\.\\d+),(-?\\d+\\.\\d+)")
+    // Regex untuk ekstrak nama tempat dari geo:0,0?q=lat,lng(Nama Tempat)
+    private val placeNameRegex = Pattern.compile("\\(([^)]+)\\)")
 
     override fun hasMarker(): Boolean {
         if (!mMarker?.isVisible!!) {
@@ -87,6 +90,24 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
         return null
     }
 
+    /**
+     * Ekstrak nama tempat dari URI geo:0,0?q=lat,lng(Nama Tempat)
+     * atau dari query parameter lainnya.
+     */
+    private fun extractPlaceName(uri: Uri): String? {
+        // Coba dari format (Nama Tempat) di URI
+        val matcher = placeNameRegex.matcher(uri.toString())
+        if (matcher.find()) {
+            return matcher.group(1)?.trim()
+        }
+        // Coba dari query parameter "q" setelah koordinat, misal ?q=Mie+Gacoan
+        val qParam = uri.getQueryParameter("q")
+        if (qParam != null && !qParam.matches(Regex("-?\\d+\\.\\d+,-?\\d+.*"))) {
+            return qParam.trim()
+        }
+        return null
+    }
+
     private fun parseIncomingIntent() {
         val uri: Uri? = intent?.data
         if (uri == null) return
@@ -102,6 +123,9 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             } else {
                 Log.d("MapActivity", "Tidak ada koordinat valid dari URI")
             }
+
+            intentPlaceName = extractPlaceName(uri)
+            Log.d("MapActivity", "Place name: $intentPlaceName")
         } catch (e: Exception) {
             Log.e("MapActivity", "Gagal parse intent URI: ${e.message}")
         }
@@ -166,9 +190,11 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, zoom))
             }
 
-            // Langsung tampilkan marker jika dari intent
             if (intentLat != null && intentLng != null) {
                 mLatLng?.let { updateMarker(it) }
+
+                // Tawarkan simpan ke favorit jika dibuka dari intent eksternal
+                offerSaveToFavorite()
             }
 
             setOnMapClickListener(this@MapActivity)
@@ -180,6 +206,15 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
                 }
             }
         }
+    }
+
+    /**
+     * Tampilkan popup tawaran simpan ke favorit setelah map siap.
+     * Nama tempat otomatis terisi dari URI intent dan bisa diedit.
+     */
+    private fun offerSaveToFavorite() {
+        val name = intentPlaceName ?: ""
+        addFavoriteDialogWithName(name)
     }
 
     override fun onMapClick(latLng: LatLng) {

@@ -276,17 +276,38 @@ abstract class BaseMapActivity: AppCompatActivity() {
     }
 
     protected fun addFavoriteDialog() {
-        alertDialog =  MaterialAlertDialogBuilder(this).apply {
-            val view = layoutInflater.inflate(R.layout.dialog,null)
+        addFavoriteDialogWithName("")
+    }
+
+    /**
+     * Dialog tambah favorit dengan nama yang sudah terisi (bisa dari intent atau kosong).
+     * User tetap bisa mengedit nama sebelum menyimpan.
+     * Tampilkan tombol Skip/Nanti jika dipanggil dengan nama pre-filled (dari intent).
+     */
+    protected fun addFavoriteDialogWithName(prefilledName: String) {
+        val fromIntent = prefilledName.isNotEmpty()
+        alertDialog = MaterialAlertDialogBuilder(this).apply {
+            val view = layoutInflater.inflate(R.layout.dialog, null)
             val editText = view.findViewById<EditText>(R.id.search_edittxt)
-            setTitle(getString(R.string.add_fav_dialog_title))
+            editText.setText(prefilledName)
+            // Pindahkan kursor ke akhir teks agar mudah diedit
+            editText.setSelection(editText.text.length)
+
+            if (fromIntent) {
+                setTitle(getString(R.string.add_fav_dialog_title))
+                setMessage("Simpan lokasi ini ke daftar favorit?")
+                setNegativeButton("Lewati") { dialog, _ -> dialog.dismiss() }
+            } else {
+                setTitle(getString(R.string.add_fav_dialog_title))
+            }
+
             setPositiveButton(getString(R.string.dialog_button_add)) { _, _ ->
                 val s = editText.text.toString()
-                if (hasMarker()){
-                  showToast(getString(R.string.location_not_select))
-                }else{
+                if (hasMarker()) {
+                    showToast(getString(R.string.location_not_select))
+                } else {
                     viewModel.storeFavorite(s, lat, lon)
-                    viewModel.response.observe(getActivityInstance()){
+                    viewModel.response.observe(getActivityInstance()) {
                         if (it == (-1).toLong()) showToast(getString(R.string.cant_save)) else showToast(getString(R.string.save))
                     }
                 }
@@ -494,9 +515,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     protected fun getLastLocation() {
-        // Kalau GPS spoof aktif, langsung pakai koordinat dari PrefManager
-        // JANGAN tanya ke FusedLocationClient — dia minta ke GMS yang bypass Xposed hook
-        // sehingga bisa bocor lokasi asli ke cache SFD
         if (PrefManager.isStarted) {
             lat = PrefManager.getLat
             lon = PrefManager.getLng
@@ -504,7 +522,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
             return
         }
 
-        // GPS spoof tidak aktif — pakai lokasi asli seperti biasa
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         if (checkPermissions()) {
             if (isLocationEnabled()) {
@@ -530,7 +547,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun requestNewLocationData() {
-        // Sama: kalau spoof aktif jangan request ke FusedLocationClient
         if (PrefManager.isStarted) {
             lat = PrefManager.getLat
             lon = PrefManager.getLng

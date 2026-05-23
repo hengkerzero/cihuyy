@@ -22,6 +22,7 @@ import io.github.jqssun.gpssetter.R
 import io.github.jqssun.gpssetter.utils.ext.getAddress
 import io.github.jqssun.gpssetter.utils.ext.showToast
 import kotlinx.coroutines.launch
+import java.util.regex.Pattern
 
 typealias CustomLatLng = LatLng
 
@@ -33,6 +34,9 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
 
     private var intentLat: Double? = null
     private var intentLng: Double? = null
+
+    // Regex untuk ekstrak koordinat: angka negatif/positif dengan desimal
+    private val coordRegex = Pattern.compile("(-?\\d+\\.\\d+),(-?\\d+\\.\\d+)")
 
     override fun hasMarker(): Boolean {
         if (!mMarker?.isVisible!!) {
@@ -60,70 +64,45 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
         mapFragment?.getMapAsync(this)
     }
 
+    /**
+     * Ekstrak koordinat dari string apapun menggunakan regex.
+     * Handle semua format:
+     * - geo:lat,lng
+     * - geo:0,0?q=lat,lng(nama tempat, dengan koma sekalipun)
+     * - https://maps.google.com/...@lat,lng,zoom
+     * - https://maps.google.com/?q=lat,lng
+     */
+    private fun extractCoords(input: String): Pair<Double, Double>? {
+        val matcher = coordRegex.matcher(input)
+        while (matcher.find()) {
+            val lat = matcher.group(1)?.toDoubleOrNull() ?: continue
+            val lng = matcher.group(2)?.toDoubleOrNull() ?: continue
+            // Skip kalau lat/lng = 0,0 (placeholder Google Maps)
+            if (lat == 0.0 && lng == 0.0) continue
+            // Validasi range koordinat
+            if (lat in -90.0..90.0 && lng in -180.0..180.0) {
+                return Pair(lat, lng)
+            }
+        }
+        return null
+    }
+
     private fun parseIncomingIntent() {
         val uri: Uri? = intent?.data
-
-        // ===== DEBUG TOAST: hapus setelah masalah selesai =====
-        if (uri != null) {
-            showToast("[DEBUG] URI: $uri")
-        } else {
-            showToast("[DEBUG] Tidak ada URI dari intent")
-        }
-        // ===== END DEBUG =====
-
         if (uri == null) return
+
         Log.d("MapActivity", "Incoming intent URI: $uri")
 
         try {
-            when (uri.scheme) {
-                "geo" -> {
-                    val ssp = uri.schemeSpecificPart
-                    val coords = ssp.split("?").first().split(",")
-                    val parsedLat = coords.getOrNull(0)?.toDoubleOrNull()
-                    val parsedLng = coords.getOrNull(1)?.toDoubleOrNull()
-
-                    if (parsedLat != null && parsedLng != null &&
-                        !(parsedLat == 0.0 && parsedLng == 0.0)) {
-                        intentLat = parsedLat
-                        intentLng = parsedLng
-                    } else {
-                        val query = uri.getQueryParameter("q")
-                        if (query != null) {
-                            val qCoords = query.split(",")
-                            intentLat = qCoords.getOrNull(0)?.toDoubleOrNull()
-                            intentLng = qCoords.getOrNull(1)?.split("(")?.firstOrNull()?.toDoubleOrNull()
-                        }
-                    }
-                }
-                "https", "http" -> {
-                    val qParam = uri.getQueryParameter("q")
-                    if (qParam != null) {
-                        val parts = qParam.split(",")
-                        intentLat = parts.getOrNull(0)?.toDoubleOrNull()
-                        intentLng = parts.getOrNull(1)?.toDoubleOrNull()
-                    }
-
-                    if (intentLat == null) {
-                        val atSign = uri.toString().substringAfter("@", "")
-                        if (atSign.isNotEmpty()) {
-                            val parts = atSign.split(",")
-                            intentLat = parts.getOrNull(0)?.toDoubleOrNull()
-                            intentLng = parts.getOrNull(1)?.toDoubleOrNull()
-                        }
-                    }
-                }
-            }
-
-            // ===== DEBUG TOAST hasil parse =====
-            if (intentLat != null && intentLng != null) {
-                showToast("[DEBUG] OK: lat=$intentLat lng=$intentLng")
+            val result = extractCoords(uri.toString())
+            if (result != null) {
+                intentLat = result.first
+                intentLng = result.second
+                Log.d("MapActivity", "Parsed OK: lat=$intentLat lng=$intentLng")
             } else {
-                showToast("[DEBUG] GAGAL parse koordinat dari URI")
+                Log.d("MapActivity", "Tidak ada koordinat valid dari URI")
             }
-            // ===== END DEBUG =====
-
         } catch (e: Exception) {
-            showToast("[DEBUG] Exception: ${e.message}")
             Log.e("MapActivity", "Gagal parse intent URI: ${e.message}")
         }
     }
@@ -133,7 +112,7 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             mLatLng = LatLng(lat, lon)
             mLatLng.let { latLng ->
                 mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
-                        CameraPosition.Builder()
+                    CameraPosition.Builder()
                         .target(latLng!!)
                         .zoom(17.0f)
                         .bearing(0f)
@@ -151,8 +130,8 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-        with(mMap){
-            if (ActivityCompat.checkSelfPermission(this@MapActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) { 
+        with(mMap) {
+            if (ActivityCompat.checkSelfPermission(this@MapActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 setMyLocationEnabled(true)
             } else {
                 ActivityCompat.requestPermissions(this@MapActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 99)
@@ -161,11 +140,12 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             uiSettings.isMyLocationButtonEnabled = false
             uiSettings.isZoomControlsEnabled = false
             uiSettings.isCompassEnabled = false
-            setPadding(0,80,0,0)
+            setPadding(0, 80, 0, 0)
             mapType = viewModel.mapType
 
             val zoom = 17.0f
 
+            // Prioritaskan koordinat dari intent, fallback ke koordinat tersimpan
             if (intentLat != null && intentLng != null) {
                 lat = intentLat!!
                 lon = intentLng!!
@@ -177,17 +157,22 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             mLatLng = LatLng(lat, lon)
             mLatLng.let {
                 mMarker = addMarker(
-                    MarkerOptions().position(it!!).draggable(false).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).visible(false)
+                    MarkerOptions()
+                        .position(it!!)
+                        .draggable(false)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                        .visible(false)
                 )
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, zoom))
             }
 
+            // Langsung tampilkan marker jika dari intent
             if (intentLat != null && intentLng != null) {
                 mLatLng?.let { updateMarker(it) }
             }
 
             setOnMapClickListener(this@MapActivity)
-            if (viewModel.isStarted){
+            if (viewModel.isStarted) {
                 mMarker?.let {
                     // TODO:
                     // it.isVisible = true
@@ -199,7 +184,7 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
 
     override fun onMapClick(latLng: LatLng) {
         mLatLng = latLng
-        mMarker?.let { marker ->
+        mMarker?.let {
             mLatLng.let {
                 updateMarker(it!!)
                 mMap.animateCamera(CameraUpdateFactory.newLatLng(it))
@@ -214,7 +199,7 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
     }
 
     @SuppressLint("MissingPermission")
-    override fun setupButtons(){
+    override fun setupButtons() {
         binding.favoriteList.setOnClickListener {
             openFavoriteListDialog()
         }
@@ -239,7 +224,7 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             binding.stopButton.visibility = View.VISIBLE
             lifecycleScope.launch {
                 mLatLng?.getAddress(getActivityInstance())?.let { address ->
-                    address.collect{ value ->
+                    address.collect { value ->
                         showStartNotification(value)
                     }
                 }

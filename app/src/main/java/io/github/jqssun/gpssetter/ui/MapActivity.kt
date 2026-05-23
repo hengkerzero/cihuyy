@@ -31,7 +31,6 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
     private var mLatLng: LatLng? = null
     private var mMarker: Marker? = null
 
-    // Koordinat dari intent luar (geo: URI / maps link)
     private var intentLat: Double? = null
     private var intentLng: Double? = null
 
@@ -52,7 +51,6 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
     }
 
     override fun initializeMap() {
-        // Parse intent URI sebelum map diinisialisasi
         parseIncomingIntent()
 
         val mapFragment = SupportMapFragment.newInstance()
@@ -62,18 +60,18 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
         mapFragment?.getMapAsync(this)
     }
 
-    /**
-     * Parse URI dari intent luar:
-     * - geo:lat,lng
-     * - geo:lat,lng?q=label
-     * - geo:0,0?q=lat,lng(label)
-     * - https://maps.google.com/...
-     * - https://goo.gl/maps/...
-     */
     private fun parseIncomingIntent() {
         val uri: Uri? = intent?.data
-        if (uri == null) return
 
+        // ===== DEBUG TOAST: hapus setelah masalah selesai =====
+        if (uri != null) {
+            showToast("[DEBUG] URI: $uri")
+        } else {
+            showToast("[DEBUG] Tidak ada URI dari intent")
+        }
+        // ===== END DEBUG =====
+
+        if (uri == null) return
         Log.d("MapActivity", "Incoming intent URI: $uri")
 
         try {
@@ -116,12 +114,16 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
                 }
             }
 
+            // ===== DEBUG TOAST hasil parse =====
             if (intentLat != null && intentLng != null) {
-                Log.d("MapActivity", "Parsed location from intent: lat=$intentLat, lon=$intentLng")
+                showToast("[DEBUG] OK: lat=$intentLat lng=$intentLng")
             } else {
-                Log.d("MapActivity", "Tidak ada koordinat valid dari intent, pakai lokasi tersimpan")
+                showToast("[DEBUG] GAGAL parse koordinat dari URI")
             }
+            // ===== END DEBUG =====
+
         } catch (e: Exception) {
+            showToast("[DEBUG] Exception: ${e.message}")
             Log.e("MapActivity", "Gagal parse intent URI: ${e.message}")
         }
     }
@@ -164,15 +166,12 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
 
             val zoom = 17.0f
 
-            // Prioritaskan koordinat dari intent, fallback ke koordinat tersimpan
             if (intentLat != null && intentLng != null) {
                 lat = intentLat!!
                 lon = intentLng!!
-                Log.d("MapActivity", "onMapReady: pakai koordinat intent lat=$lat lon=$lon")
             } else {
                 lat = viewModel.getLat
                 lon = viewModel.getLng
-                Log.d("MapActivity", "onMapReady: pakai koordinat tersimpan lat=$lat lon=$lon")
             }
 
             mLatLng = LatLng(lat, lon)
@@ -183,10 +182,8 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, zoom))
             }
 
-            // Jika dari intent luar, langsung tampilkan marker di koordinat tujuan
             if (intentLat != null && intentLng != null) {
                 mLatLng?.let { updateMarker(it) }
-                showToast(getString(R.string.location_set))
             }
 
             setOnMapClickListener(this@MapActivity)

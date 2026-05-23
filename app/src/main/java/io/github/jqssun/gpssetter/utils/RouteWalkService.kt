@@ -16,21 +16,26 @@ import io.github.jqssun.gpssetter.R
 import io.github.jqssun.gpssetter.ui.MapActivity
 import kotlinx.coroutines.*
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.random.Random
 
 /**
  * Foreground Service untuk menggerakkan GPS secara bertahap mengikuti route.
  *
- * Worst-case handling:
- * - Service crash: onDestroy membersihkan state, broadcast WALK_FINISHED
- * - Empty route list: langsung selesai, tidak crash
- * - Pause/Resume: state disimpan, tidak hilang saat pause
- * - Double start: dicegah dengan flag isWalking
- * - Speed 0: dicegah minimum speed 0.5 m/s
- * - Memory leak: coroutine dibatalkan di onDestroy
- * - ANR: semua delay di background thread
- * - GPS noise: ditambahkan untuk realism
- * - Sharp turns: speed dikurangi saat belokan tajam
+ * === PERBAIKAN UTAMA v2 ===
+ * Masalah sebelumnya: speed hanya 14 km/h meski pilih "Mobil" (40 km/h).
+ * Root cause:
+ *   1. UPDATE_INTERVAL minimum 1000ms terlalu besar → titik dekat dipaksa 1 detik
+ *   2. Interpolasi 10m per step → jarak step tidak match dengan waktu
+ *   3. GPS noise berlebihan menambah jarak liar
+ *   4. Brake factor 0.4 terlalu agresif
+ *
+ * Solusi:
+ *   - Gunakan time-based movement: setiap tick (200ms), hitung berapa meter
+ *     yang HARUS ditempuh = speed * dt, lalu geser posisi sepanjang route.
+ *   - Tidak ada minimum interval yang memaksa speed turun.
+ *   - Noise dikurangi dan proporsional speed.
+ *   - Brake hanya di belokan sangat tajam (>90°), faktor 0.6 bukan 0.4.
  */
 class RouteWalkService : Service() {
 
@@ -55,33 +60,46 @@ class RouteWalkService : Service() {
         const val EXTRA_CURRENT_INDEX = "current_index"
         const val EXTRA_TOTAL_POINTS = "total_points"
         const val EXTRA_STATE = "state"
+        const val EXTRA_SPEED_KMH = "speed_kmh"
 
         const val STATE_WALKING = "walking"
         const val STATE_PAUSED = "paused"
         const val STATE_FINISHED = "finished"
         const val STATE_ERROR = "error"
 
-        // Speed presets (m/s)
-        const val SPEED_WALK = 1.4      // ~5 km/h
-        const val SPEED_RUN = 3.0       // ~11 km/h
-        const val SPEED_BIKE = 5.5      // ~20 km/h
-        const val SPEED_CAR = 11.0      // ~40 km/h
+        // Tick interval — setiap 200ms update posisi
+        // Ini cukup smooth untuk GPS mock dan cukup ringan untuk battery
+        private const val TICK_INTERVAL_MS = 200L
 
-        private const val MIN_SPEED = 0.5
-        private const val GPS_NOISE_METERS = 2.0 // noise radius for realism
-        private const val SHARP_TURN_ANGLE = 60.0 // degrees
-        private const val BRAKE_FACTOR = 0.4 // speed reduction at sharp turns
-        private const val UPDATE_INTERVAL_MS = 1000L // minimum interval between GPS updates
+        // GPS noise: sangat kecil, hanya untuk realism
+        private const val GPS_NOISE_BASE_METERS = 1.0
+
+        // Belokan tajam threshold dan brake
+        private const val SHARP_TURN_ANGLE = 90.0   // derajat
+        private const val BRAKE_FACTOR = 0.6        // speed * 0.6 saat belokan tajam
+
+        // Minimum speed (m/s) — 1 km/h
+        private const val MIN_SPEED_MS = 0.28
     }
 
     private var routePoints: List<LatLng> = emptyList()
-    private var speedMs: Double = SPEED_WALK
-    private var currentIndex: Int = 0
+    private var speedMs: Double = 1.4  // default 5 km/h
+    private var speedKmh: Float = 5f
+
+    // Progress tracking: posisi di antara segment
+    private var currentSegmentIndex: Int = 0
+    private var distanceAlongSegment: Double = 0.0 // meter dari titik currentSegmentIndex
+    private var totalRouteDistance: Double = 0.0
+    private var distanceTraveled: Double = 0.0
+
     private var isWalking: Boolean = false
     private var isPaused: Boolean = false
 
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var walkJob: Job? = null
+
+    // Pre-computed segment distances
+    private var segmentDistances: DoubleArray = doubleArrayOf()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -97,9 +115,7 @@ class RouteWalkService : Service() {
             ACTION_PAUSE -> handlePause()
             ACTION_RESUME -> handleResume()
             ACTION_STOP -> handleStop()
-            else -> {
-                Log.w(TAG, "Unknown action: ${intent?.action}")
-            }
+            else -> Log.w(TAG, "Unknown action: ${intent?.action}")
         }
         return START_NOT_STICKY
     }
@@ -112,7 +128,8 @@ class RouteWalkService : Service() {
 
         val lats = intent.getDoubleArrayExtra(EXTRA_ROUTE_LATS)
         val lngs = intent.getDoubleArrayExtra(EXTRA_ROUTE_LNGS)
-        speedMs = intent.getDoubleExtra(EXTRA_SPEED_MS, SPEED_WALK).coerceAtLeast(MIN_SPEED)
+        speedMs = intent.getDoubleExtra(EXTRA_SPEED_MS, 1.4).coerceAtLeast(MIN_SPEED_MS)
+        speedKmh = intent.getFloatExtra(EXTRA_SPEED_KMH, 5f)
 
         if (lats == null || lngs == null || lats.size < 2 || lats.size != lngs.size) {
             Log.e(TAG, "Invalid route data: lats=${lats?.size}, lngs=${lngs?.size}")
@@ -122,15 +139,23 @@ class RouteWalkService : Service() {
         }
 
         routePoints = lats.zip(lngs).map { (lat, lng) -> LatLng(lat, lng) }
-        currentIndex = 0
+
+        // Pre-compute segment distances
+        segmentDistances = DoubleArray(routePoints.size - 1) { i ->
+            OsrmRouteHelper.distanceBetween(routePoints[i], routePoints[i + 1])
+        }
+        totalRouteDistance = segmentDistances.sum()
+
+        currentSegmentIndex = 0
+        distanceAlongSegment = 0.0
+        distanceTraveled = 0.0
         isWalking = true
         isPaused = false
 
-        Log.d(TAG, "Starting walk: ${routePoints.size} points, speed=${speedMs} m/s")
+        Log.d(TAG, "Starting walk: ${routePoints.size} points, totalDist=${totalRouteDistance}m, speed=${speedMs} m/s (${speedKmh} km/h)")
 
-        // Start foreground immediately to prevent crash
         try {
-            startForeground(NOTIFICATION_ID, buildNotification("Auto Walk dimulai..."))
+            startForeground(NOTIFICATION_ID, buildNotification("Auto Walk ${speedKmh.toInt()} km/h"))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start foreground: ${e.message}")
             broadcastState(STATE_ERROR)
@@ -147,17 +172,18 @@ class RouteWalkService : Service() {
         isPaused = true
         walkJob?.cancel()
         broadcastState(STATE_PAUSED)
-        updateNotification("Auto Walk dijeda (${currentIndex}/${routePoints.size})")
-        Log.d(TAG, "Paused at index $currentIndex")
+        val progress = if (totalRouteDistance > 0) ((distanceTraveled / totalRouteDistance) * 100).toInt() else 0
+        updateNotification("Dijeda — $progress%")
+        Log.d(TAG, "Paused at segment $currentSegmentIndex, traveled ${distanceTraveled}m")
     }
 
     private fun handleResume() {
         if (!isWalking || !isPaused) return
         isPaused = false
         broadcastState(STATE_WALKING)
-        updateNotification("Auto Walk berjalan...")
+        updateNotification("Auto Walk ${speedKmh.toInt()} km/h")
         startWalking()
-        Log.d(TAG, "Resumed from index $currentIndex")
+        Log.d(TAG, "Resumed")
     }
 
     private fun handleStop() {
@@ -175,9 +201,9 @@ class RouteWalkService : Service() {
         walkJob?.cancel()
         walkJob = serviceScope.launch {
             try {
-                walkAlongRoute()
+                walkLoop()
             } catch (e: CancellationException) {
-                Log.d(TAG, "Walk cancelled (pause/stop)")
+                // Normal pause/stop
             } catch (e: Exception) {
                 Log.e(TAG, "Walk error: ${e.message}", e)
                 withContext(Dispatchers.Main) {
@@ -187,67 +213,75 @@ class RouteWalkService : Service() {
         }
     }
 
-    private suspend fun walkAlongRoute() {
-        while (currentIndex < routePoints.size - 1 && isWalking && !isPaused) {
-            val current = routePoints[currentIndex]
-            val next = routePoints[currentIndex + 1]
+    /**
+     * Core movement loop — time-based.
+     *
+     * Setiap tick (200ms):
+     * 1. Hitung jarak yang harus ditempuh = speed * (tick/1000)
+     * 2. Maju sepanjang route sejumlah jarak itu
+     * 3. Update GPS position
+     * 4. Broadcast progress
+     *
+     * Ini menjamin speed ACTUAL sesuai dengan yang dipilih user.
+     */
+    private suspend fun walkLoop() {
+        val tickSeconds = TICK_INTERVAL_MS / 1000.0
+        var lastNotifUpdate = 0L
 
-            val distance = OsrmRouteHelper.distanceBetween(current, next)
+        while (isWalking && !isPaused && currentSegmentIndex < segmentDistances.size) {
 
-            // Hitung effective speed (kurangi saat belokan tajam)
-            val effectiveSpeed = calculateEffectiveSpeed(currentIndex)
+            // Hitung effective speed (brake di belokan tajam)
+            val effectiveSpeed = calculateEffectiveSpeed()
 
-            // Hitung delay berdasarkan jarak dan speed
-            val travelTimeMs = if (effectiveSpeed > 0) {
-                ((distance / effectiveSpeed) * 1000).toLong().coerceAtLeast(UPDATE_INTERVAL_MS)
-            } else {
-                UPDATE_INTERVAL_MS
-            }
+            // Jarak yang ditempuh tick ini
+            val moveDistance = effectiveSpeed * tickSeconds
 
-            // Interpolasi antara titik jika jarak besar (> 20m)
-            if (distance > 20.0) {
-                val steps = (distance / 10.0).toInt().coerceIn(1, 50)
-                val stepDelay = travelTimeMs / steps
+            // Advance along route
+            advanceAlongRoute(moveDistance)
 
-                for (step in 1..steps) {
-                    if (!isWalking || isPaused) return
+            // Hitung posisi interpolasi di segment saat ini
+            if (currentSegmentIndex >= segmentDistances.size) break // sudah selesai
 
-                    val fraction = step.toDouble() / steps
-                    val interpLat = current.latitude + (next.latitude - current.latitude) * fraction
-                    val interpLng = current.longitude + (next.longitude - current.longitude) * fraction
+            val segDist = segmentDistances[currentSegmentIndex]
+            val fraction = if (segDist > 0) (distanceAlongSegment / segDist).coerceIn(0.0, 1.0) else 0.0
 
-                    // Tambah GPS noise untuk realism (hanya di speed rendah)
-                    val (noisyLat, noisyLng) = addGpsNoise(interpLat, interpLng)
+            val from = routePoints[currentSegmentIndex]
+            val to = routePoints[currentSegmentIndex + 1]
 
-                    PrefManager.update(true, noisyLat, noisyLng)
-                    delay(stepDelay.coerceAtLeast(200L))
-                }
-            } else {
-                // Titik dekat, langsung pindah
-                val (noisyLat, noisyLng) = addGpsNoise(next.latitude, next.longitude)
-                PrefManager.update(true, noisyLat, noisyLng)
-                delay(travelTimeMs.coerceAtLeast(500L))
-            }
+            val currentLat = from.latitude + (to.latitude - from.latitude) * fraction
+            val currentLng = from.longitude + (to.longitude - from.longitude) * fraction
 
-            currentIndex++
+            // Tambah noise GPS kecil (proporsional dengan speed — lebih cepat = lebih kecil)
+            val (noisyLat, noisyLng) = addGpsNoise(currentLat, currentLng)
+
+            // Update GPS mock
+            PrefManager.update(true, noisyLat, noisyLng)
 
             // Broadcast progress
-            val progress = ((currentIndex.toFloat() / (routePoints.size - 1)) * 100).toInt()
-            broadcastProgress(progress, currentIndex, routePoints.size)
+            val progress = if (totalRouteDistance > 0) {
+                ((distanceTraveled / totalRouteDistance) * 100).toInt().coerceIn(0, 100)
+            } else 0
 
-            // Update notification setiap 10 titik
-            if (currentIndex % 10 == 0) {
-                updateNotification("Auto Walk: $progress% (${currentIndex}/${routePoints.size})")
+            broadcastProgress(progress, currentSegmentIndex, routePoints.size)
+
+            // Update notification setiap 3 detik
+            val now = System.currentTimeMillis()
+            if (now - lastNotifUpdate > 3000) {
+                val remaining = totalRouteDistance - distanceTraveled
+                val etaSeconds = if (effectiveSpeed > 0) remaining / effectiveSpeed else 0.0
+                val etaMin = (etaSeconds / 60).toInt()
+                updateNotification("${speedKmh.toInt()} km/h — $progress% — ETA ${etaMin} mnt")
+                lastNotifUpdate = now
             }
+
+            delay(TICK_INTERVAL_MS)
         }
 
-        // Selesai
-        if (isWalking && currentIndex >= routePoints.size - 1) {
-            // Set final position tanpa noise
+        // Selesai — set posisi final tanpa noise
+        if (isWalking && currentSegmentIndex >= segmentDistances.size) {
             val finalPoint = routePoints.last()
             PrefManager.update(true, finalPoint.latitude, finalPoint.longitude)
-
-            Log.d(TAG, "Walk completed at final position")
+            Log.d(TAG, "Walk completed!")
             broadcastProgress(100, routePoints.size, routePoints.size)
 
             withContext(Dispatchers.Main) {
@@ -257,15 +291,42 @@ class RouteWalkService : Service() {
     }
 
     /**
-     * Hitung effective speed berdasarkan sudut belokan.
-     * Jika belokan tajam (> 60°), speed dikurangi.
+     * Geser posisi sepanjang route sejauh [distance] meter.
+     * Bisa melewati beberapa segment sekaligus jika distance besar.
      */
-    private fun calculateEffectiveSpeed(index: Int): Double {
-        if (index <= 0 || index >= routePoints.size - 1) return speedMs
+    private fun advanceAlongRoute(distance: Double) {
+        var remaining = distance
+        distanceTraveled += distance
 
-        val prev = routePoints[index - 1]
-        val current = routePoints[index]
-        val next = routePoints[index + 1]
+        while (remaining > 0 && currentSegmentIndex < segmentDistances.size) {
+            val segDist = segmentDistances[currentSegmentIndex]
+            val leftInSegment = segDist - distanceAlongSegment
+
+            if (remaining < leftInSegment) {
+                // Masih di segment yang sama
+                distanceAlongSegment += remaining
+                remaining = 0.0
+            } else {
+                // Pindah ke segment berikutnya
+                remaining -= leftInSegment
+                currentSegmentIndex++
+                distanceAlongSegment = 0.0
+            }
+        }
+    }
+
+    /**
+     * Hitung speed efektif berdasarkan sudut belokan di titik saat ini.
+     * Hanya brake di belokan sangat tajam (>90°).
+     */
+    private fun calculateEffectiveSpeed(): Double {
+        if (currentSegmentIndex <= 0 || currentSegmentIndex >= segmentDistances.size - 1) {
+            return speedMs
+        }
+
+        val prev = routePoints[currentSegmentIndex - 1]
+        val current = routePoints[currentSegmentIndex]
+        val next = routePoints[currentSegmentIndex + 1]
 
         val bearingIn = OsrmRouteHelper.bearingBetween(prev, current)
         val bearingOut = OsrmRouteHelper.bearingBetween(current, next)
@@ -281,15 +342,17 @@ class RouteWalkService : Service() {
     }
 
     /**
-     * Tambah noise GPS kecil untuk realism.
-     * Noise lebih besar saat speed rendah (seperti jalan kaki).
+     * GPS noise yang minimal dan proporsional speed.
+     * Speed tinggi → noise kecil (karena GPS IRL juga lebih stabil saat gerak cepat).
+     * Speed rendah → noise sedikit lebih besar (GPS IRL lebih goyang saat diam/pelan).
      */
     private fun addGpsNoise(lat: Double, lng: Double): Pair<Double, Double> {
-        val noiseRadius = if (speedMs <= SPEED_WALK) GPS_NOISE_METERS else GPS_NOISE_METERS * 0.5
+        // Noise radius: 1m di speed rendah, 0.3m di speed tinggi
+        val noiseFactor = (1.0 - (speedMs / 22.0).coerceAtMost(0.7)) // 22 m/s = 80 km/h
+        val noiseRadius = GPS_NOISE_BASE_METERS * noiseFactor
 
-        // Convert noise meter ke derajat (aproksimasi)
-        val noiseLat = (Random.nextDouble() - 0.5) * 2 * (noiseRadius / 111000.0)
-        val noiseLng = (Random.nextDouble() - 0.5) * 2 * (noiseRadius / (111000.0 * Math.cos(Math.toRadians(lat))))
+        val noiseLat = (Random.nextDouble() - 0.5) * 2 * (noiseRadius / 111_000.0)
+        val noiseLng = (Random.nextDouble() - 0.5) * 2 * (noiseRadius / (111_000.0 * cos(Math.toRadians(lat))))
 
         return Pair(lat + noiseLat, lng + noiseLng)
     }
@@ -329,8 +392,8 @@ class RouteWalkService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_play)
-            .setContentTitle("🚶 Auto Walk")
+            .setSmallIcon(R.drawable.ic_baseline_directions_walk_24)
+            .setContentTitle("Auto Walk")
             .setContentText(text)
             .setOngoing(true)
             .setAutoCancel(false)
@@ -353,28 +416,25 @@ class RouteWalkService : Service() {
     // === Broadcasts ===
 
     private fun broadcastProgress(progress: Int, currentIdx: Int, total: Int) {
-        val intent = Intent(BROADCAST_PROGRESS).apply {
+        sendBroadcast(Intent(BROADCAST_PROGRESS).apply {
             putExtra(EXTRA_PROGRESS, progress)
             putExtra(EXTRA_CURRENT_INDEX, currentIdx)
             putExtra(EXTRA_TOTAL_POINTS, total)
             setPackage(packageName)
-        }
-        sendBroadcast(intent)
+        })
     }
 
     private fun broadcastState(state: String) {
-        val intent = Intent(BROADCAST_STATE).apply {
+        sendBroadcast(Intent(BROADCAST_STATE).apply {
             putExtra(EXTRA_STATE, state)
             setPackage(packageName)
-        }
-        sendBroadcast(intent)
+        })
     }
 
     private fun broadcastFinished() {
-        val intent = Intent(BROADCAST_FINISHED).apply {
+        sendBroadcast(Intent(BROADCAST_FINISHED).apply {
             setPackage(packageName)
-        }
-        sendBroadcast(intent)
+        })
     }
 
     override fun onDestroy() {
@@ -383,7 +443,5 @@ class RouteWalkService : Service() {
         walkJob?.cancel()
         serviceScope.cancel()
         isWalking = false
-        // Pastikan broadcast finished jika belum dikirim
-        broadcastFinished()
     }
 }

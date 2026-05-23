@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <application
         android:name=".App"
@@ -68,6 +70,11 @@
 
         <service
             android:name=".utils.JoystickService"
+            android:exported="false" />
+
+        <service
+            android:name=".utils.RouteWalkService"
+            android:foregroundServiceType="location"
             android:exported="false" />
 
 

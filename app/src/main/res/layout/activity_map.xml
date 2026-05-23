@@ -41,6 +41,191 @@
             android:layout_height="match_parent"
             android:layout_width="match_parent"/>
 
+        <!-- ============ WALK MODE UI ============ -->
+
+        <!-- Mode Toggle: Normal / Walk -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/mode_toggle_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
+            android:elevation="8dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_normal"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Normal"
+                android:checked="true" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_walk"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Walk"
+                app:chipIcon="@drawable/ic_baseline_directions_walk_24" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+        <!-- Walk Controls Panel -->
+        <LinearLayout
+            android:id="@+id/walk_controls_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="64dp"
+            android:orientation="vertical"
+            android:background="@drawable/rounded_card_background"
+            android:padding="12dp"
+            android:elevation="8dp"
+            android:visibility="gone">
+
+            <!-- Hint text -->
+            <TextView
+                android:id="@+id/walk_hint_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tap peta untuk titik START"
+                android:textAlignment="center"
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:paddingBottom="8dp" />
+
+            <!-- Speed selector -->
+            <LinearLayout
+                android:id="@+id/walk_speed_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingTop="4dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/speed_chip_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/speed_walk"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Jalan"
+                        android:checked="true" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/speed_run"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Lari" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/speed_bike"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sepeda" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/speed_car"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Mobil" />
+
+                </com.google.android.material.chip.ChipGroup>
+
+            </LinearLayout>
+
+            <!-- Action buttons: Play/Pause, Stop -->
+            <LinearLayout
+                android:id="@+id/walk_action_buttons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:visibility="gone">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_walk_play"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    app:icon="@drawable/ic_play"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="28dp"
+                    android:layout_marginEnd="16dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_walk_stop"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    app:icon="@drawable/ic_stop"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="28dp" />
+
+            </LinearLayout>
+
+            <!-- Progress -->
+            <LinearLayout
+                android:id="@+id/walk_progress_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:paddingTop="8dp">
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/walk_progress_bar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="false"
+                    android:max="100"
+                    android:progress="0"
+                    app:trackThickness="6dp"
+                    app:trackCornerRadius="3dp" />
+
+                <TextView
+                    android:id="@+id/walk_progress_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="0%"
+                    android:textAlignment="center"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:paddingTop="4dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ============ END WALK MODE UI ============ -->
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/getlocation"
             style="@style/Widget.Material3.Button.TonalButton"
@@ -64,7 +249,6 @@
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="32dp" />
-            <!-- app:backgroundTint="@color/background" -->
         
         <com.google.android.material.button.MaterialButton
             android:id="@+id/addfavorite"

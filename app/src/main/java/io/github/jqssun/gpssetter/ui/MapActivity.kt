@@ -79,18 +79,16 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
         try {
             when (uri.scheme) {
                 "geo" -> {
-                    val ssp = uri.schemeSpecificPart // contoh: "-7.12,110.34" atau "-7.12,110.34?q=..."
+                    val ssp = uri.schemeSpecificPart
                     val coords = ssp.split("?").first().split(",")
                     val parsedLat = coords.getOrNull(0)?.toDoubleOrNull()
                     val parsedLng = coords.getOrNull(1)?.toDoubleOrNull()
 
-                    // geo:0,0?q= berarti cari query, bukan koordinat langsung
                     if (parsedLat != null && parsedLng != null &&
                         !(parsedLat == 0.0 && parsedLng == 0.0)) {
                         intentLat = parsedLat
                         intentLng = parsedLng
                     } else {
-                        // Coba parse dari query param q=lat,lng
                         val query = uri.getQueryParameter("q")
                         if (query != null) {
                             val qCoords = query.split(",")
@@ -100,7 +98,6 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
                     }
                 }
                 "https", "http" -> {
-                    // Coba ambil dari query param: ?q=lat,lng atau @lat,lng,zoom
                     val qParam = uri.getQueryParameter("q")
                     if (qParam != null) {
                         val parts = qParam.split(",")
@@ -109,7 +106,6 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
                     }
 
                     if (intentLat == null) {
-                        // Coba parse dari path fragment @lat,lng,zoom
                         val atSign = uri.toString().substringAfter("@", "")
                         if (atSign.isNotEmpty()) {
                             val parts = atSign.split(",")
@@ -121,15 +117,12 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
             }
 
             if (intentLat != null && intentLng != null) {
-                lat = intentLat!!
-                lon = intentLng!!
-                Log.d("MapActivity", "Parsed location from intent: lat=$lat, lon=$lon")
+                Log.d("MapActivity", "Parsed location from intent: lat=$intentLat, lon=$intentLng")
             } else {
                 Log.d("MapActivity", "Tidak ada koordinat valid dari intent, pakai lokasi tersimpan")
             }
         } catch (e: Exception) {
             Log.e("MapActivity", "Gagal parse intent URI: ${e.message}")
-            // Tidak crash, fallback ke lokasi tersimpan
         }
     }
 
@@ -171,10 +164,15 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickLi
 
             val zoom = 17.0f
 
-            // Jika tidak ada koordinat dari intent, pakai koordinat tersimpan
-            if (intentLat == null || intentLng == null) {
+            // Prioritaskan koordinat dari intent, fallback ke koordinat tersimpan
+            if (intentLat != null && intentLng != null) {
+                lat = intentLat!!
+                lon = intentLng!!
+                Log.d("MapActivity", "onMapReady: pakai koordinat intent lat=$lat lon=$lon")
+            } else {
                 lat = viewModel.getLat
                 lon = viewModel.getLng
+                Log.d("MapActivity", "onMapReady: pakai koordinat tersimpan lat=$lat lon=$lon")
             }
 
             mLatLng = LatLng(lat, lon)

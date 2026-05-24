@@ -35,6 +35,7 @@ import io.github.jqssun.gpssetter.utils.RouteResult
 import io.github.jqssun.gpssetter.utils.RouteWalkService
 import io.github.jqssun.gpssetter.utils.ext.getAddress
 import io.github.jqssun.gpssetter.utils.ext.showToast
+import io.github.jqssun.gpssetter.shopeefood.ShopeeFoodBottomSheet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.util.regex.Pattern
@@ -624,6 +625,9 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
             true
         }
 
+        // === ShopeeFood Search ===
+        binding.btnShopeefood.setOnClickListener { openShopeeFoodSearch() }
+
         if (viewModel.isStarted) {
             binding.startButton.visibility = View.GONE
             binding.stopButton.visibility = View.VISIBLE
@@ -715,6 +719,39 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         } else {
             registerReceiver(walkReceiver, filter)
         }
+    }
+
+    /**
+     * Buka bottom sheet pencarian restoran ShopeeFood.
+     * Saat user tap hasil, koordinat restoran langsung di-set ke peta + spoofer.
+     */
+    private fun openShopeeFoodSearch() {
+        val bottomSheet = ShopeeFoodBottomSheet()
+        bottomSheet.onRestaurantSelected = { restoLat, restoLng, restoName ->
+            // Set koordinat ke peta
+            lat = restoLat
+            lon = restoLng
+            mLatLng = LatLng(restoLat, restoLng)
+
+            // Update marker & kamera
+            mLatLng?.let { latLng ->
+                updateMarker(latLng)
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
+            }
+
+            // Langsung set GPS spoofer
+            viewModel.update(true, restoLat, restoLng)
+            binding.startButton.visibility = View.GONE
+            binding.stopButton.visibility = View.VISIBLE
+
+            showToast("GPS diset ke: $restoName")
+
+            // Show notifikasi
+            lifecycleScope.launch {
+                showStartNotification(restoName)
+            }
+        }
+        bottomSheet.show(supportFragmentManager, ShopeeFoodBottomSheet.TAG)
     }
 
     /**

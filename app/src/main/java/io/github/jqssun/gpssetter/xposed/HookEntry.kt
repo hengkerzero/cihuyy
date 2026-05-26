@@ -17,6 +17,12 @@ class HookEntry : IXposedHookLoadPackage {
                 }
             })
         }
+
+        // Hook Shopee app untuk intercept ShopeeFood data
+        if (lpparam.packageName == "com.shopee.id") {
+            ShopeeHook.initHooks(lpparam)
+        }
+
         LocationHook.initHooks(lpparam)
     }
 }

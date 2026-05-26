@@ -2,7 +2,7 @@
 <resources>
     <string-array name="scopes">
         <item>android</item>
-
+        <item>com.shopee.id</item>
     </string-array>
 
 

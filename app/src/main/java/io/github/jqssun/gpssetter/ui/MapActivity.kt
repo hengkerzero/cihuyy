@@ -785,4 +785,14 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         routeFetchJob?.cancel()
         super.onDestroy()
     }
+
+    override fun onResume() {
+        super.onResume()
+        // Sync button state jika GPS di-set dari ShopeeFood atau lainnya
+        if (appMode == AppMode.NORMAL) {
+            val gpsActive = PrefManager.isStarted
+            binding.startButton.visibility = if (gpsActive) View.GONE else View.VISIBLE
+            binding.stopButton.visibility = if (gpsActive) View.VISIBLE else View.GONE
+        }
+    }
 }

@@ -12,6 +12,12 @@
         android:icon="@drawable/ic_outline_favorite_list"/>
 
     <item
+        android:id="@+id/shopeefood_search"
+        android:title="ShopeeFood Search"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_baseline_search_24"/>
+
+    <item
         android:id="@+id/settings"
         android:title="@string/settings"
         app:showAsAction="always"

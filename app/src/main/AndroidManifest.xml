@@ -30,6 +30,12 @@
             android:launchMode="singleTop">
         </activity>
         <activity
+            android:name=".shopeefood.ShopeeFoodSearchActivity"
+            android:exported="false"
+            android:label="ShopeeFood Search"
+            android:launchMode="singleTop">
+        </activity>
+        <activity
             android:name=".ui.MapActivity"
             android:exported="true">
             <intent-filter>

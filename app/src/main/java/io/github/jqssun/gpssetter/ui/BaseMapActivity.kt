@@ -22,6 +22,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -46,6 +47,7 @@ import io.github.jqssun.gpssetter.BuildConfig
 import io.github.jqssun.gpssetter.R
 import io.github.jqssun.gpssetter.adapter.FavListAdapter
 import io.github.jqssun.gpssetter.databinding.ActivityMapBinding
+import io.github.jqssun.gpssetter.shopeefood.ShopeeFoodSearchActivity
 import io.github.jqssun.gpssetter.ui.viewmodel.MainViewModel
 import io.github.jqssun.gpssetter.utils.JoystickService
 import io.github.jqssun.gpssetter.utils.NotificationsChannel
@@ -103,6 +105,26 @@ abstract class BaseMapActivity: AppCompatActivity() {
                 }
                 .setNegativeButton("Nanti", null)
                 .show()
+        }
+    }
+
+    // Launcher untuk ShopeeFood Search - handle result ketika user teleport ke restoran
+    protected val shopeeFoodLauncher: ActivityResultLauncher<Intent> = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val data = result.data
+            val teleportLat = data?.getDoubleExtra(ShopeeFoodSearchActivity.EXTRA_TELEPORT_LAT, 0.0) ?: 0.0
+            val teleportLng = data?.getDoubleExtra(ShopeeFoodSearchActivity.EXTRA_TELEPORT_LNG, 0.0) ?: 0.0
+            val teleportName = data?.getStringExtra(ShopeeFoodSearchActivity.EXTRA_TELEPORT_NAME) ?: ""
+
+            if (teleportLat != 0.0 && teleportLng != 0.0) {
+                lat = teleportLat
+                lon = teleportLng
+                moveMapToNewLocation(true)
+                showStartNotification(teleportName)
+                Toast.makeText(this, "Teleport ke: $teleportName", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -227,6 +249,9 @@ abstract class BaseMapActivity: AppCompatActivity() {
             when(it.itemId){
                 R.id.get_favorite -> {
                     openFavoriteListDialog()
+                }
+                R.id.shopeefood_search -> {
+                    shopeeFoodLauncher.launch(Intent(this, ShopeeFoodSearchActivity::class.java))
                 }
                 R.id.settings -> {
                     startActivity(Intent(this,ActivitySettings::class.java))

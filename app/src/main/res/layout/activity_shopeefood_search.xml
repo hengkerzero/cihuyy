@@ -112,7 +112,7 @@
                 android:id="@+id/tv_empty_message"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Belum ada data.\n\n1. Tap \"Buka ShopeeFood\"\n2. Cari restoran di Shopee\n3. Kembali ke sini\n4. Data restoran otomatis muncul!"
+                android:text="Belum ada data.\n\n1. Tap Buka ShopeeFood\n2. Cari restoran di Shopee\n3. Kembali ke sini\n4. Data restoran otomatis muncul!"
                 android:textSize="14sp"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textAlignment="center"

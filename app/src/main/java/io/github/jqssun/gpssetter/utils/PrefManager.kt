@@ -25,6 +25,7 @@ object PrefManager   {
     private const val DARK_THEME = "dark_theme"
     private const val DISABLE_UPDATE = "update_disabled"
     private const val ENABLE_JOYSTICK = "joystick_enabled"
+    private const val AUTO_OFF_ON_ORDER = "auto_off_on_order"
 
 
     private val pref: SharedPreferences by lazy {
@@ -81,6 +82,10 @@ object PrefManager   {
     var isJoystickEnabled: Boolean
         get() = pref.getBoolean(ENABLE_JOYSTICK, false)
         set(value) = pref.edit().putBoolean(ENABLE_JOYSTICK, value).apply()
+
+    var isAutoOffOnOrder: Boolean
+        get() = pref.getBoolean(AUTO_OFF_ON_ORDER, false)
+        set(value) = pref.edit().putBoolean(AUTO_OFF_ON_ORDER, value).apply()
 
     fun update(start:Boolean, la: Double, ln: Double) {
         runInBackground {

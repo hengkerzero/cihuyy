@@ -29,6 +29,7 @@ import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.material.slider.Slider
 import io.github.jqssun.gpssetter.R
+import io.github.jqssun.gpssetter.utils.OrderNotificationListener
 import io.github.jqssun.gpssetter.utils.OsrmRouteHelper
 import io.github.jqssun.gpssetter.utils.PrefManager
 import io.github.jqssun.gpssetter.utils.RouteResult
@@ -90,6 +91,15 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
     // Regex
     private val coordRegex = Pattern.compile("(-?\\d+\\.\\d+),(-?\\d+\\.\\d+)")
     private val placeNameRegex = Pattern.compile("\\(([^)]+)\\)")
+
+    // === Order Detection Receiver ===
+    private val orderDetectedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == OrderNotificationListener.ACTION_ORDER_DETECTED) {
+                onOrderDetectedAutoOff()
+            }
+        }
+    }
 
     // === Broadcast Receiver ===
     private val walkReceiver = object : BroadcastReceiver() {
@@ -702,6 +712,9 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
         // Register receiver
         registerWalkReceiver()
+
+        // Setup Auto-Off toggle
+        setupAutoOffToggle()
     }
 
     private fun registerWalkReceiver() {
@@ -714,6 +727,74 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
             registerReceiver(walkReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             registerReceiver(walkReceiver, filter)
+        }
+
+        // Register order detected receiver
+        val orderFilter = IntentFilter(OrderNotificationListener.ACTION_ORDER_DETECTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(orderDetectedReceiver, orderFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(orderDetectedReceiver, orderFilter)
+        }
+    }
+
+    // === Auto-Off on Order ===
+
+    private fun setupAutoOffToggle() {
+        // Load saved state
+        binding.switchAutoOffOrder.isChecked = PrefManager.isAutoOffOnOrder
+
+        binding.switchAutoOffOrder.setOnCheckedChangeListener { _, isChecked ->
+            PrefManager.isAutoOffOnOrder = isChecked
+            if (isChecked) {
+                // Cek apakah notification listener permission sudah granted
+                if (!isNotificationListenerEnabled()) {
+                    showToast("Aktifkan izin Notification Access untuk fitur ini")
+                    requestNotificationListenerPermission()
+                } else {
+                    showToast("Auto-Off aktif: GPS mati otomatis saat dapat orderan")
+                }
+            } else {
+                showToast("Auto-Off dinonaktifkan")
+            }
+        }
+    }
+
+    private fun isNotificationListenerEnabled(): Boolean {
+        val packageName = packageName
+        val flat = android.provider.Settings.Secure.getString(
+            contentResolver, "enabled_notification_listeners"
+        )
+        return flat != null && flat.contains(packageName)
+    }
+
+    private fun requestNotificationListenerPermission() {
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Cannot open notification listener settings: ${e.message}")
+            showToast("Buka Settings > Apps > Notification Access secara manual")
+        }
+    }
+
+    /**
+     * Dipanggil saat orderan terdeteksi dan GPS sudah dimatikan oleh service.
+     * Update UI agar sinkron.
+     */
+    private fun onOrderDetectedAutoOff() {
+        Log.i(TAG, "Order detected! UI updating...")
+        showToast("Orderan masuk! GPS fake dimatikan otomatis")
+
+        // Update UI normal mode
+        removeMarker()
+        binding.stopButton.visibility = View.GONE
+        binding.startButton.visibility = View.VISIBLE
+        cancelNotification()
+
+        // Jika sedang walk mode, reset walk state
+        if (appMode == AppMode.WALK) {
+            resetWalkState()
         }
     }
 
@@ -780,6 +861,10 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
     override fun onDestroy() {
         try {
             unregisterReceiver(walkReceiver)
+        } catch (_: Exception) {
+        }
+        try {
+            unregisterReceiver(orderDetectedReceiver)
         } catch (_: Exception) {
         }
         routeFetchJob?.cancel()

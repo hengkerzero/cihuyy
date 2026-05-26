@@ -15,132 +15,140 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:elevation="4dp"
-            app:title="ShopeeFood Search"
+            app:title="ShopeeFood"
             app:navigationIcon="@drawable/ic_baseline_menu_24"
             app:navigationContentDescription="Back" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- Search Bar -->
+        <!-- WebView utama untuk ShopeeFood -->
+        <WebView
+            android:id="@+id/webview_shopee"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Loading overlay -->
+        <LinearLayout
+            android:id="@+id/layout_loading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="?attr/colorSurface"
+            android:visibility="visible">
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminate="true" />
+
+            <TextView
+                android:id="@+id/tv_loading_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Memuat ShopeeFood..."
+                android:textSize="14sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:paddingTop="16dp" />
+
+        </LinearLayout>
+
+        <!-- Bottom card: info restoran yang terdeteksi + tombol teleport -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_restaurant_info"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="12dp"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="4dp"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
             app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="16dp"
-                android:paddingEnd="8dp">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_baseline_search_24"
-                    android:contentDescription="Search"
-                    android:alpha="0.6" />
+                <TextView
+                    android:id="@+id/tv_resto_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Nama Restoran"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
 
-                <EditText
-                    android:id="@+id/et_search_keyword"
-                    android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_weight="1"
-                    android:hint="Cari restoran / makanan..."
-                    android:textSize="15sp"
-                    android:background="@null"
-                    android:paddingStart="12dp"
-                    android:inputType="text"
-                    android:imeOptions="actionSearch"
-                    android:maxLines="1"
-                    android:singleLine="true" />
+                <TextView
+                    android:id="@+id/tv_resto_address"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Alamat"
+                    android:textSize="13sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:paddingTop="4dp" />
+
+                <TextView
+                    android:id="@+id/tv_resto_coords"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Koordinat: -"
+                    android:textSize="12sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:paddingTop="4dp" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_search"
-                    style="@style/Widget.Material3.Button.TonalButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:text="Cari"
-                    android:textSize="13sp"
-                    app:cornerRadius="20dp" />
+                    android:id="@+id/btn_teleport"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="12dp"
+                    android:text="TELEPORT KE SINI"
+                    app:cornerRadius="24dp" />
 
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Info: lokasi anchor -->
-        <TextView
-            android:id="@+id/tv_search_info"
-            android:layout_width="match_parent"
+        <!-- FAB untuk instruksi / hint -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_hint"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pencarian berdasarkan lokasi peta saat ini"
-            android:textSize="12sp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textAlignment="center"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="8dp" />
-
-        <!-- Loading indicator -->
-        <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/progress_search"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:indeterminate="true"
-            android:visibility="gone"
-            app:trackThickness="4dp" />
-
-        <!-- Result list -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_restaurants"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingTop="4dp"
-            android:paddingBottom="16dp" />
-
-        <!-- Empty state -->
-        <LinearLayout
-            android:id="@+id/layout_empty"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:visibility="gone"
-            android:padding="32dp">
-
-            <ImageView
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:src="@drawable/ic_baseline_search_24"
-                android:alpha="0.3"
-                android:contentDescription="Empty" />
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:visibility="visible"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="6dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer">
 
             <TextView
-                android:id="@+id/tv_empty_message"
+                android:id="@+id/tv_hint"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cari restoran ShopeeFood\ndan teleport ke lokasinya!"
-                android:textSize="15sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textAlignment="center"
-                android:paddingTop="16dp"
-                android:lineSpacingExtra="4dp" />
+                android:text="Buka restoran untuk melihat koordinat"
+                android:textSize="12sp"
+                android:textColor="?attr/colorOnPrimaryContainer"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
 
-        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-    </LinearLayout>
+    </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

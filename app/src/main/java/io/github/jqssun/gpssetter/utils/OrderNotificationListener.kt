@@ -21,7 +21,8 @@ class OrderNotificationListener : NotificationListenerService() {
 
         // Package names ShopeeFood Driver (bisa ada beberapa varian)
         private val SHOPEE_DRIVER_PACKAGES = listOf(
-            "com.shopee.driver",           // ShopeeFood Driver utama
+            "com.shopee.foody.driver.id",  // ShopeeFood Driver Indonesia
+            "com.shopee.driver",           // Varian lain
             "com.shopee.food.driver",      // Varian lain
             "com.garena.game.shopee.driver" // Varian regional
         )
@@ -33,6 +34,7 @@ class OrderNotificationListener : NotificationListenerService() {
             "new order",
             "pesanan masuk",
             "ada pesanan",
+            "anda dapat",
             "anda mendapat",
             "orderan baru",
             "pickup",

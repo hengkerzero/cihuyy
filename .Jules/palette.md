@@ -1,0 +1,3 @@
+## 2024-06-25 - Add tooltip text mapping for Android Material Components
+**Learning:** For icon-only Material buttons (`MaterialButton`) in Android, setting `android:contentDescription` handles screen readers, but users with visual access who rely on hover/long-press gestures might not understand the icon's purpose. Using `app:tooltipText` explicitly maps these visual tooltips in a way that respects backward compatibility to minSdk 27.
+**Action:** When adding or auditing icon-only buttons, always ensure both `android:contentDescription` (for a11y) and `app:tooltipText` (for visual discoverability) are set, ideally to the same string resource.

@@ -1,0 +1,3 @@
+## 2024-05-28 - Add tooltipText to MaterialButtons for accessibility
+**Learning:** Tooltips for Material components (like icon-only buttons) must use `app:tooltipText` rather than `android:tooltipText` to ensure comprehensive backwards compatibility, mapping it to the same string resource as `android:contentDescription` to improve discoverability. Note that `app:tooltipText` acts correctly according to application's context despite warnings as Material component tooltips fallback on app compat features.
+**Action:** Always use `app:tooltipText` to icon-only buttons when adding `android:contentDescription`.

@@ -8,40 +8,40 @@
 [![license](https://img.shields.io/github/license/jqssun/android-gps-setter)](https://github.com/jqssun/android-gps-setter/blob/master/LICENSE)
 [![issues](https://img.shields.io/github/issues/jqssun/android-gps-setter)](https://github.com/jqssun/android-gps-setter/issues)
   
-A GPS setter based on the Xposed framework. This fork is the first module to achieve support for Android 15+ with its sources available.  
+Sebuah aplikasi pengatur GPS (GPS setter) yang berbasis pada framework Xposed. Fork ini adalah modul pertama yang mencapai dukungan untuk Android 15+ dengan kode sumber yang tersedia secara publik.
 
-## Releases
+## Rilis
 
 <table>
     <tr>
-        <th>Version</th>
+        <th>Versi</th>
         <th>app-full-*.apk</th>
         <th>app-foss-*.apk</th>
     </tr>
     <tr>
-        <th>Maps Library</th>
+        <th>Pustaka Peta</th>
         <td>GMS (com.google.android.gms:play-services-maps)</td>
         <td>MapLibre (org.maplibre.gl:android-sdk)</td>
     </tr>
     <tr>
-        <th>Fused Location</th>
+        <th>Lokasi Terpadu (Fused)</th>
         <td>GMS (com.google.android.gms:play-services-location)</td>
         <td>microG (org.microg.gms:play-services-location)</td>
     </tr>
     <tr>
-        <th>Distribution</th>
+        <th>Distribusi</th>
         <td>
             <a href="https://github.com/jqssun/android-gps-setter/releases">
                 <img
                     src="https://raw.githubusercontent.com/NeoApplications/Neo-Backup/refs/heads/main/badge_github.png"
-                    alt="Get it on GitHub" width="200" />
+                    alt="Dapatkan di GitHub" width="200" />
             </a>
         </td>
         <td>
             <a href="https://f-droid.org/packages/io.github.jqssun.gpssetter">
                 <img
                     src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-                    alt="Get it on F-Droid" width="200" />
+                    alt="Dapatkan di F-Droid" width="200" />
             </a>
         </td>
     </tr>
@@ -53,39 +53,45 @@ A GPS setter based on the Xposed framework. This fork is the first module to ach
 [<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="80">]()
 -->
 
-## Motivation
+## Motivasi
 
-An increasing number of apps are abusing the location permission for tracking purposes, preventing the user from using the app without granting the permission. Traditionally on Android, modifying the response from android server is done using the mock location provider - however, the availability of this feature is device dependent. Additionally, some apps have started explicitly checking for signals regarding whether the location provided is reliable. This module aims to mitigate this by providing an ability to either,
-1. hook the app itself to modify the location it receives, or
-2. hook the system server if the app explicitly checks for whether itself is being hooked
+Semakin banyak aplikasi yang menyalahgunakan izin lokasi untuk tujuan pelacakan, dan mencegah pengguna menggunakan aplikasi tanpa memberikan izin tersebut. Secara tradisional di Android, memodifikasi respons dari server Android dilakukan menggunakan penyedia lokasi palsu (mock location provider) - namun, ketersediaan fitur ini sangat bergantung pada perangkat. Selain itu, beberapa aplikasi mulai secara eksplisit memeriksa sinyal untuk mengetahui apakah lokasi yang diberikan dapat diandalkan atau palsu. Modul ini bertujuan untuk mengurangi hal tersebut dengan memberikan kemampuan untuk:
+1. Melakukan *hook* pada aplikasi itu sendiri untuk memodifikasi lokasi yang diterimanya, atau
+2. Melakukan *hook* pada server sistem jika aplikasi secara eksplisit memeriksa apakah aplikasi tersebut sedang di-*hook*.
 
-Specifically, in the case of hooking just the app, it intercepts [`android.location.Location`](https://developer.android.com/reference/android/location/Location) and [`android.location.LocationManager`](https://developer.android.com/reference/android/location/LocationManager) methods including
+Secara khusus, dalam kasus hanya melakukan *hook* pada aplikasi, modul ini menyadap metode dari [`android.location.Location`](https://developer.android.com/reference/android/location/Location) dan [`android.location.LocationManager`](https://developer.android.com/reference/android/location/LocationManager) termasuk:
 - [`getLatitude()`](https://developer.android.com/reference/android/location/Location#getLatitude())
 - [`getLongitude()`](https://developer.android.com/reference/android/location/Location#getLongitude())
 - [`getAccuracy()`](https://developer.android.com/reference/android/location/Location#getAccuracy())
 - [`getLastKnownLocation(java.lang.String)`](https://developer.android.com/reference/android/location/LocationManager#getLastKnownLocation(java.lang.String))
 
-## Compatibility
+## Kompatibilitas
 
-- Android 8.1+ (tested up to Android 16 Beta 2)
-- Rooted devices with Xposed framework installed (e.g. LSPosed)
-- Unrooted devices with LSPatch (with manually embedded specified location)
+- Android 8.1+ (telah diuji coba hingga Android 16 Beta 2)
+- Perangkat yang sudah di-root dengan framework Xposed terinstal (misalnya LSPosed)
+- Perangkat tanpa root menggunakan LSPatch (dengan menyematkan lokasi tertentu secara manual)
 
-## Features
+## Fitur Utama
 
-- ✨ (New) Supports system server location APIs introduced in Android 14+
-- 🍀 (New) Supports a fully FLOSS build flavor - including all underlying dependencies
-- 🖲️ (New) Allows adjusting location on the fly via an on-screen joystick overlay
-- 🎉 (New) Features custom designed resource bundles with updated dependent libraries
-- 🎲 Allows using a live updating random location in the vicinity of the set point
-- 🔥 Compatible with latest Material Design
+- ✨ **(Baru) Mendukung API lokasi server sistem (Android 14+)**
+  Modul ini dirancang untuk dapat berfungsi dengan baik pada sistem operasi terbaru, dengan mengatasi perubahan API lokasi yang diperkenalkan sejak Android 14.
+- 🍀 **(Baru) Mendukung varian build FLOSS (Sepenuhnya Open-Source)**
+  Tersedia versi tanpa layanan Google (GMS) yang menggunakan alternatif murni open-source, termasuk seluruh pustaka dasar seperti microG dan MapLibre.
+- 🖲️ **(Baru) Hamparan Joystick Layar (On-Screen Joystick)**
+  Memungkinkan Anda menyesuaikan atau menggeser lokasi secara langsung (on-the-fly) dari layar mana saja tanpa harus membuka aplikasi pengatur lokasi kembali.
+- 🎉 **(Baru) Resource Kustom & Pembaruan Dependensi**
+  Menghadirkan desain bundel sumber daya yang baru beserta pembaruan ke pustaka yang dibutuhkan untuk menjamin stabilitas dan performa.
+- 🎲 **Lokasi Acak (Random Location)**
+  Bisa mengatur lokasi palsu secara dinamis yang terus berubah secara acak dalam radius sekitar titik yang telah Anda tentukan (membuatnya terlihat lebih realistis/natural).
+- 🔥 **Kompatibel dengan Material Design**
+  Antarmuka pengguna didesain dengan gaya Material Design terbaru yang memberikan pengalaman penggunaan (UI/UX) yang modern dan mulus.
 
 ## Demo
 
 <video loop src='https://github.com/user-attachments/assets/fbc0901c-b126-4ca7-9239-34390a76e7f9' alt="demo" width="200" style="display: block; margin: auto;"></video> <!-- https://github.com/jqssun/android-gps-setter/releases/download/v0.0.1/0.mp4 -->
 
-## Credits
+## Kredit & Penghargaan
 
-- [Android1500](https://github.com/Android1500/GpsSetter) for the original GpsSetter targeting Android 8.1 to 13
-- [MapLibre](https://github.com/maplibre/maplibre-native) for the mapping library
-- [microG](https://github.com/microg/GmsCore) for the FOSS implementation of Google Mobile Services
+- [Android1500](https://github.com/Android1500/GpsSetter) atas versi asli GpsSetter yang menargetkan Android 8.1 hingga 13.
+- [MapLibre](https://github.com/maplibre/maplibre-native) untuk pustaka pemetaan (mapping library).
+- [microG](https://github.com/microg/GmsCore) untuk implementasi FOSS (Free and Open Source Software) dari Google Mobile Services.

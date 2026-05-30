@@ -8,4 +8,10 @@
     -->
     <color name="ic_launcher_background">#CCCCCC</color>
 
+    <!-- Map floating action buttons (dark translucent circles, white icons) -->
+    <color name="map_fab_background">#D92B303A</color>
+    <color name="map_fab_icon">#FFFFFFFF</color>
+    <color name="map_fab_start">#D92E7D32</color>
+    <color name="map_fab_stop">#D9C62828</color>
+
 </resources>

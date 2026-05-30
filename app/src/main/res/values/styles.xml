@@ -5,5 +5,22 @@
         <item name="android:popupBackground">@drawable/background_menu</item>
     </style>
 
+    <!-- Circular dark map FAB (referensi: tombol bulat gelap di peta) -->
+    <style name="MapFab" parent="Widget.Material3.Button.IconButton.Filled">
+        <item name="android:layout_width">56dp</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:insetLeft">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetRight">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:elevation">8dp</item>
+        <item name="cornerRadius">28dp</item>
+        <item name="backgroundTint">@color/map_fab_background</item>
+        <item name="iconTint">@color/map_fab_icon</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconSize">26dp</item>
+        <item name="rippleColor">#33FFFFFF</item>
+    </style>
 
 </resources>

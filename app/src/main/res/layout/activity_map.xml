@@ -236,7 +236,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
-            android:layout_above="@id/mode_toggle_card"
+            android:layout_above="@id/mode_toggle_button"
             android:layout_marginStart="12dp"
             android:layout_marginBottom="8dp"
             android:elevation="8dp"
@@ -272,159 +272,113 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Mode Toggle: bottom-left -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/mode_toggle_card"
+        <!-- ============ MODE TOGGLE (Normal / Walk) : bottom-left pill ============ -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mode_toggle_button"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:contentDescription="@string/mode_toggle_desc"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_alignParentStart="true"
             android:layout_alignParentBottom="true"
             android:layout_marginStart="12dp"
             android:layout_marginBottom="12dp"
             android:elevation="8dp"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="6dp"
-            app:strokeWidth="0dp">
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/mode_normal"
+            android:textColor="@color/map_fab_icon"
+            app:backgroundTint="@color/map_fab_background"
+            app:cornerRadius="28dp"
+            app:icon="@drawable/ic_baseline_directions_walk_24"
+            app:iconGravity="textStart"
+            app:iconSize="22dp"
+            app:iconTint="@color/map_fab_icon"
+            app:rippleColor="#33FFFFFF" />
 
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/mode_toggle_group"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="4dp"
-                app:singleSelection="true"
-                app:selectionRequired="true">
+        <!-- ============ LEFT COLUMN FABs ============ -->
+        <LinearLayout
+            android:id="@+id/left_fab_column"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_alignParentStart="true"
+            android:layout_above="@id/mode_toggle_button"
+            android:layout_marginStart="12dp"
+            android:layout_marginBottom="12dp">
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chip_normal"
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Normal"
-                    android:checked="true" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/settings_button"
+                style="@style/MapFab"
+                android:contentDescription="@string/settings_desc"
+                android:layout_marginBottom="12dp"
+                app:icon="@drawable/ic_outline_settings_24" />
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chip_walk"
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Walk"
-                    app:chipIcon="@drawable/ic_baseline_directions_walk_24" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/addfavorite"
+                style="@style/MapFab"
+                android:contentDescription="@string/addfavorite_desc"
+                android:layout_marginBottom="12dp"
+                app:icon="@drawable/ic_baseline_favorite" />
 
-            </com.google.android.material.chip.ChipGroup>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/favorite_list"
+                style="@style/MapFab"
+                android:contentDescription="@string/favorites_list_desc"
+                app:icon="@drawable/ic_outline_favorite_list" />
 
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
-        <!-- Right side FABs (normal mode) -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/getlocation"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:contentDescription="@string/getlocation_desc"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+        <!-- ============ RIGHT COLUMN FABs ============ -->
+        <LinearLayout
+            android:id="@+id/right_fab_column"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_alignParentEnd="true"
             android:layout_alignParentBottom="true"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="32dp"
-            android:layout_marginEnd="32dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:alpha="0.95"
-            android:elevation="10dp"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_baseline_my_location_24"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="32dp" />
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="12dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/addfavorite"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:contentDescription="@string/addfavorite_desc"
-            android:layout_above="@id/getlocation"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="32dp"
-            android:layout_marginEnd="32dp"
-            android:layout_marginTop="16dp"
-            android:alpha="0.95"
-            android:elevation="10dp"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_baseline_favorite"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="32dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/refresh_maps"
+                style="@style/MapFab"
+                android:contentDescription="@string/refresh_maps_desc"
+                android:layout_marginBottom="12dp"
+                app:icon="@drawable/ic_refresh" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/favorite_list"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:contentDescription="@string/favorites"
-            android:layout_above="@id/addfavorite"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="32dp"
-            android:layout_marginEnd="32dp"
-            android:layout_marginTop="16dp"
-            android:alpha="0.95"
-            android:elevation="10dp"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_outline_favorite_list"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="32dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/delete_marker"
+                style="@style/MapFab"
+                android:contentDescription="@string/delete_marker_desc"
+                android:layout_marginBottom="12dp"
+                app:icon="@drawable/ic_delete" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/start_button"
-            android:contentDescription="@string/location_set"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_above="@id/favorite_list"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="32dp"
-            android:layout_marginEnd="32dp"
-            android:alpha="0.95"
-            android:elevation="10dp"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_play"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="32dp"
-            android:visibility="visible" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/start_button"
+                style="@style/MapFab"
+                android:contentDescription="@string/location_set"
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@color/map_fab_start"
+                app:icon="@drawable/ic_play"
+                android:visibility="visible" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/stop_button"
-            android:contentDescription="@string/location_unset"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_above="@id/favorite_list"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="32dp"
-            android:layout_marginEnd="32dp"
-            android:alpha="0.95"
-            android:elevation="10dp"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_stop"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="32dp"
-            android:visibility="gone" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/stop_button"
+                style="@style/MapFab"
+                android:contentDescription="@string/location_unset"
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@color/map_fab_stop"
+                app:icon="@drawable/ic_stop"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/getlocation"
+                style="@style/MapFab"
+                android:contentDescription="@string/getlocation_desc"
+                app:icon="@drawable/ic_baseline_my_location_24" />
+
+        </LinearLayout>
 
     </RelativeLayout>
 

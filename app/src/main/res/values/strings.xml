@@ -13,8 +13,18 @@
     <string name="des">Show notification when location is set</string>
     <string name="location_unset">Location unset</string>
     <string name="no_internet">No Internet</string>
-    <string name="getlocation_desc">Get current location</string>
+    <string name="getlocation_desc">My location</string>
     <string name="addfavorite_desc">Add favorite</string>
+    <string name="delete_marker_desc">Delete marker</string>
+    <string name="refresh_maps_desc">Refresh maps</string>
+    <string name="favorites_list_desc">Favorite list</string>
+    <string name="settings_desc">Settings</string>
+    <string name="mode_toggle_desc">Toggle Normal / Walk mode</string>
+    <string name="marker_removed">Marker dihapus</string>
+    <string name="no_marker_to_remove">Tidak ada marker</string>
+    <string name="maps_refreshed">Maps di-refresh</string>
+    <string name="mode_normal">Normal</string>
+    <string name="mode_walk">Walk</string>
 
     <!-- Errors -->
     <string name="error_xposed_module_missing">Xposed module is not enabled</string>

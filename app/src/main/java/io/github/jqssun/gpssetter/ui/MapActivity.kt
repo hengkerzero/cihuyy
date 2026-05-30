@@ -422,9 +422,10 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
         // Masuk mode WALK (tanpa guard "Stop GPS dulu" — walk memang sedang aktif)
         appMode = AppMode.WALK
-        binding.chipWalk.isChecked = true
+        updateModeToggleUi()
         binding.startButton.visibility = View.GONE
         binding.stopButton.visibility = View.GONE
+        binding.deleteMarker.visibility = View.GONE
         binding.addfavorite.visibility = View.GONE
         binding.favoriteList.visibility = View.GONE
         binding.walkControlsPanel.visibility = View.VISIBLE
@@ -664,7 +665,6 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
     private fun switchToNormalMode() {
         if (walkState == WalkState.WALKING || walkState == WalkState.PAUSED) {
             showToast("Stop walk dulu")
-            binding.chipWalk.isChecked = true
             return
         }
         if (appMode == AppMode.NORMAL) return
@@ -678,9 +678,10 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         val gpsActive = PrefManager.isStarted
         binding.startButton.visibility = if (gpsActive) View.GONE else View.VISIBLE
         binding.stopButton.visibility = if (gpsActive) View.VISIBLE else View.GONE
+        binding.deleteMarker.visibility = View.VISIBLE
         binding.addfavorite.visibility = View.VISIBLE
         binding.favoriteList.visibility = View.VISIBLE
-        binding.modeToggleCard.visibility = View.VISIBLE
+        updateModeToggleUi()
 
         Log.d(TAG, "Mode: NORMAL (gpsActive=$gpsActive)")
     }
@@ -689,7 +690,6 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         // Cek langsung dari PrefManager (bukan viewModel yang bisa stale)
         if (PrefManager.isStarted) {
             showToast("Stop GPS dulu")
-            binding.chipNormal.isChecked = true
             return
         }
         if (appMode == AppMode.WALK) return
@@ -698,12 +698,80 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
         binding.startButton.visibility = View.GONE
         binding.stopButton.visibility = View.GONE
+        binding.deleteMarker.visibility = View.GONE
         binding.addfavorite.visibility = View.GONE
         binding.favoriteList.visibility = View.GONE
         binding.walkControlsPanel.visibility = View.VISIBLE
+        updateModeToggleUi()
 
         resetWalkState()
         Log.d(TAG, "Mode: WALK")
+    }
+
+    /** Toggle mode Normal <-> Walk lewat satu tombol. */
+    private fun toggleAppMode() {
+        if (appMode == AppMode.NORMAL) {
+            switchToWalkMode()
+        } else {
+            switchToNormalMode()
+        }
+    }
+
+    /** Sinkronkan label + ikon tombol toggle dengan mode aktif. */
+    private fun updateModeToggleUi() {
+        if (appMode == AppMode.WALK) {
+            binding.modeToggleButton.text = getString(R.string.mode_walk)
+            binding.modeToggleButton.setIconResource(R.drawable.ic_baseline_directions_walk_24)
+        } else {
+            binding.modeToggleButton.text = getString(R.string.mode_normal)
+            binding.modeToggleButton.setIconResource(R.drawable.ic_baseline_my_location_24)
+        }
+    }
+
+    /**
+     * Hapus marker yang sedang aktif di peta.
+     * Jika GPS sedang aktif (spoofing jalan), matikan dulu agar konsisten.
+     */
+    private fun onDeleteMarkerClicked() {
+        if (hasMarker()) {
+            showToast(getString(R.string.no_marker_to_remove))
+            return
+        }
+        if (PrefManager.isStarted) {
+            mLatLng?.let { viewModel.update(false, it.latitude, it.longitude) }
+            binding.stopButton.visibility = View.GONE
+            binding.startButton.visibility = View.VISIBLE
+            cancelNotification()
+        }
+        removeMarker()
+        showToast(getString(R.string.marker_removed))
+    }
+
+    /**
+     * Refresh peta: muat ulang map type & posisi kamera ke marker/lokasi terakhir.
+     */
+    private fun refreshMaps() {
+        if (!::mMap.isInitialized) {
+            showToast(getString(R.string.maps_refreshed))
+            return
+        }
+        val markerWasVisible = mMarker?.isVisible == true
+        mMap.mapType = viewModel.mapType
+        mMap.clear()
+        mMarker = null
+        // Bangun ulang marker normal
+        mLatLng = LatLng(lat, lon)
+        mLatLng?.let {
+            mMarker = mMap.addMarker(
+                MarkerOptions()
+                    .position(it)
+                    .draggable(false)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                    .visible(markerWasVisible)
+            )
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, 17.0f))
+        }
+        showToast(getString(R.string.maps_refreshed))
     }
 
     override fun getActivityInstance(): BaseMapActivity = this
@@ -714,6 +782,17 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         binding.favoriteList.setOnClickListener { openFavoriteListDialog() }
         binding.addfavorite.setOnClickListener { addFavoriteDialog() }
         binding.getlocation.setOnClickListener { getLastLocation() }
+
+        // Hapus marker yang sedang aktif di peta
+        binding.deleteMarker.setOnClickListener { onDeleteMarkerClicked() }
+
+        // Refresh / reload peta
+        binding.refreshMaps.setOnClickListener { refreshMaps() }
+
+        // Tombol pengaturan (placeholder: buka SettingsActivity untuk saat ini)
+        binding.settingsButton.setOnClickListener {
+            startActivity(Intent(this, ActivitySettings::class.java))
+        }
 
         // Long press getlocation = force reset semua state (solusi darurat)
         binding.getlocation.setOnLongClickListener {
@@ -748,9 +827,9 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
             showToast(getString(R.string.location_unset))
         }
 
-        // === Mode toggle ===
-        binding.chipNormal.setOnClickListener { switchToNormalMode() }
-        binding.chipWalk.setOnClickListener { switchToWalkMode() }
+        // === Mode toggle (Normal <-> Walk) lewat satu tombol ===
+        updateModeToggleUi()
+        binding.modeToggleButton.setOnClickListener { toggleAppMode() }
 
         // === Walk: Speed Slider ===
         binding.speedSlider.value = 5f
@@ -916,7 +995,7 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
         // 4. Force mode ke NORMAL
         appMode = AppMode.NORMAL
-        binding.chipNormal.isChecked = true
+        updateModeToggleUi()
 
         // 5. Reset semua UI visibility
         binding.walkControlsPanel.visibility = View.GONE
@@ -933,9 +1012,9 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         // 6. Show tombol normal
         binding.startButton.visibility = View.VISIBLE
         binding.stopButton.visibility = View.GONE
+        binding.deleteMarker.visibility = View.VISIBLE
         binding.addfavorite.visibility = View.VISIBLE
         binding.favoriteList.visibility = View.VISIBLE
-        binding.modeToggleCard.visibility = View.VISIBLE
 
         // 7. Remove marker
         removeMarker()

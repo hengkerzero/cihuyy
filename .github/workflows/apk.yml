@@ -5,8 +5,8 @@ name: Generate APK
 
 env:
   main_project_module: app
-  target_owner: hengkerzero
-  target_repo: cihuyy
+  target_owner: Xposed-Modules-Repo
+  target_repo: io.github.jqssun.gpssetter
   target_path: target_path
 
 on:
@@ -80,7 +80,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.PAT }}
-          repository: hengkerzero/cihuyy
+          repository: Xposed-Modules-Repo/io.github.jqssun.gpssetter
           name: v${{ env.version }}
           tag_name: v${{ env.version }}
           files: |

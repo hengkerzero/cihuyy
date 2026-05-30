@@ -254,6 +254,10 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
             setOnMapClickListener(this@MapActivity)
         }
+
+        // Reconnect UI bila Auto Walk masih berjalan setelah activity dibuat ulang
+        // (mis. proses di-kill OS atau opsi dev "Don't keep activities").
+        reconcileWalkStateFromService()
     }
 
     private fun offerSaveToFavorite() {
@@ -398,6 +402,88 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
     }
 
     // === Walk Controls ===
+
+    /**
+     * Pulihkan tampilan mode WALK kalau RouteWalkService masih jalan tapi activity
+     * baru dibuat ulang (rotasi sudah ditangani configChanges, ini untuk kasus
+     * proses di-kill / "Don't keep activities"). Tanpa ini UI bisa "menyangkut":
+     * service jalan terus tapi panel walk hilang.
+     */
+    private fun reconcileWalkStateFromService() {
+        if (!RouteWalkService.liveActive) return
+        // Sudah ke-restore sebelumnya
+        if (appMode == AppMode.WALK && walkState != WalkState.IDLE) return
+
+        val lats = RouteWalkService.liveRouteLats
+        val lngs = RouteWalkService.liveRouteLngs
+        if (lats == null || lngs == null || lats.size < 2 || lats.size != lngs.size) return
+
+        Log.d(TAG, "Reconcile: walk masih berjalan, memulihkan UI")
+
+        // Masuk mode WALK (tanpa guard "Stop GPS dulu" — walk memang sedang aktif)
+        appMode = AppMode.WALK
+        binding.chipWalk.isChecked = true
+        binding.startButton.visibility = View.GONE
+        binding.stopButton.visibility = View.GONE
+        binding.addfavorite.visibility = View.GONE
+        binding.favoriteList.visibility = View.GONE
+        binding.walkControlsPanel.visibility = View.VISIBLE
+
+        // Rebuild rute + marker + polyline
+        val points = lats.indices.map { LatLng(lats[it], lngs[it]) }
+        walkRoutePoints = points
+        walkStartLatLng = points.first()
+        walkFinishLatLng = points.last()
+
+        walkStartMarker?.remove()
+        walkStartMarker = mMap.addMarker(
+            MarkerOptions()
+                .position(points.first())
+                .title("START")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+        )
+        walkFinishMarker?.remove()
+        walkFinishMarker = mMap.addMarker(
+            MarkerOptions()
+                .position(points.last())
+                .title("FINISH")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+        )
+        drawPolyline(points)
+
+        // Pulihkan speed
+        selectedSpeedKmh = RouteWalkService.liveSpeedKmh
+        try {
+            binding.speedSlider.value = selectedSpeedKmh.coerceIn(
+                binding.speedSlider.valueFrom, binding.speedSlider.valueTo
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Set slider value gagal: ${e.message}")
+        }
+        binding.speedValueText.text = "${selectedSpeedKmh.toInt()} km/h"
+        binding.speedSlider.isEnabled = false
+
+        // Pulihkan progress + tombol sesuai state
+        val progress = RouteWalkService.liveProgress
+        binding.walkSpeedLayout.visibility = View.VISIBLE
+        binding.walkActionButtons.visibility = View.VISIBLE
+        binding.walkProgressLayout.visibility = View.VISIBLE
+        binding.walkProgressBar.progress = progress
+        binding.walkProgressText.text = "$progress%"
+        binding.btnWalkStop.text = "Stop"
+
+        if (RouteWalkService.livePaused) {
+            walkState = WalkState.PAUSED
+            binding.walkHintText.text = "Dijeda — $progress%"
+            binding.btnWalkPlay.text = "Lanjut"
+            binding.btnWalkPlay.setIconResource(R.drawable.ic_play)
+        } else {
+            walkState = WalkState.WALKING
+            binding.walkHintText.text = "Walking ${selectedSpeedKmh.toInt()} km/h..."
+            binding.btnWalkPlay.text = "Jeda"
+            binding.btnWalkPlay.setIconResource(R.drawable.ic_baseline_pause_24)
+        }
+    }
 
     private fun startWalk() {
         if (walkState == WalkState.WALKING) {

@@ -80,6 +80,16 @@ class RouteWalkService : Service() {
 
         // Minimum speed (m/s) — 1 km/h
         private const val MIN_SPEED_MS = 0.28
+
+        // === Snapshot state walk (dibaca MapActivity untuk reconnect UI setelah
+        // activity dibuat ulang, mis. proses di-kill / "Don't keep activities").
+        // Service & activity satu proses, jadi aman pakai field statis. ===
+        @Volatile var liveActive: Boolean = false
+        @Volatile var livePaused: Boolean = false
+        @Volatile var liveRouteLats: DoubleArray? = null
+        @Volatile var liveRouteLngs: DoubleArray? = null
+        @Volatile var liveSpeedKmh: Float = 5f
+        @Volatile var liveProgress: Int = 0
     }
 
     private var routePoints: List<LatLng> = emptyList()
@@ -166,6 +176,14 @@ class RouteWalkService : Service() {
         isWalking = true
         isPaused = false
 
+        // Simpan snapshot untuk reconnect UI bila activity dibuat ulang
+        liveActive = true
+        livePaused = false
+        liveRouteLats = lats
+        liveRouteLngs = lngs
+        liveSpeedKmh = speedKmh
+        liveProgress = 0
+
         Log.d(TAG, "Starting walk: ${routePoints.size} points, totalDist=${totalRouteDistance}m, speed=${speedMs} m/s (${speedKmh} km/h)")
 
         // Update teks notifikasi dgn speed sebenarnya (foreground sudah aktif di atas)
@@ -178,6 +196,7 @@ class RouteWalkService : Service() {
     private fun handlePause() {
         if (!isWalking || isPaused) return
         isPaused = true
+        livePaused = true
         walkJob?.cancel()
         broadcastState(STATE_PAUSED)
         val progress = if (totalRouteDistance > 0) ((distanceTraveled / totalRouteDistance) * 100).toInt() else 0
@@ -188,6 +207,7 @@ class RouteWalkService : Service() {
     private fun handleResume() {
         if (!isWalking || !isPaused) return
         isPaused = false
+        livePaused = false
         broadcastState(STATE_WALKING)
         updateNotification("Auto Walk ${speedKmh.toInt()} km/h")
         startWalking()
@@ -199,6 +219,13 @@ class RouteWalkService : Service() {
         isWalking = false
         isPaused = false
         walkJob?.cancel()
+
+        // Reset snapshot supaya activity tidak ikut "menyangkut" di mode walk
+        liveActive = false
+        livePaused = false
+        liveRouteLats = null
+        liveRouteLngs = null
+        liveProgress = 0
 
         // PENTING: Reset GPS state supaya isStarted = false
         // Ini mencegah bug "Stop GPS dulu" saat mau switch mode
@@ -435,6 +462,7 @@ class RouteWalkService : Service() {
     // === Broadcasts ===
 
     private fun broadcastProgress(progress: Int, currentIdx: Int, total: Int) {
+        liveProgress = progress
         sendBroadcast(Intent(BROADCAST_PROGRESS).apply {
             putExtra(EXTRA_PROGRESS, progress)
             putExtra(EXTRA_CURRENT_INDEX, currentIdx)
@@ -462,5 +490,7 @@ class RouteWalkService : Service() {
         walkJob?.cancel()
         serviceScope.cancel()
         isWalking = false
+        liveActive = false
+        livePaused = false
     }
 }

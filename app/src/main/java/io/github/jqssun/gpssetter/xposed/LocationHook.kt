@@ -26,6 +26,8 @@ object LocationHook {
     var newlng: Double = 0.0000
     private const val pi = 3.14159265359
     private var accuracy: Float = 0.0f
+    private var mockSpeed: Float = 0.0f
+    private var mockBearing: Float = 0.0f
     private val rand: Random = Random()
     private const val earth = 6378137.0
     private val settings = Xshare()
@@ -46,6 +48,8 @@ object LocationHook {
             newlng =
                 if (settings.isRandomPosition) settings.getLng + (dlng * 180.0 / pi) else settings.getLng
             accuracy = settings.accuracy!!.toFloat()
+            mockSpeed = settings.getSpeed
+            mockBearing = settings.getBearing
 
         } catch (e: Exception) {
             Timber.tag("GPS Setter")
@@ -79,7 +83,8 @@ object LocationHook {
                             location.latitude = newlat
                             location.longitude = newlng
                             location.altitude = 0.0
-                            location.speed = 0F
+                            location.speed = mockSpeed
+                            location.bearing = mockBearing
                             location.accuracy = accuracy
                             location.speedAccuracyMetersPerSecond = 0F
                             param.result = location
@@ -131,7 +136,8 @@ object LocationHook {
                             location.latitude = newlat
                             location.longitude = newlng
                             location.altitude = 0.0
-                            location.speed = 0F
+                            location.speed = mockSpeed
+                            location.bearing = mockBearing
                             location.speedAccuracyMetersPerSecond = 0F
                             XposedBridge.log("GS: lat: ${location.latitude}, lon: ${location.longitude}")
                             try {
@@ -162,7 +168,8 @@ object LocationHook {
                                     location.latitude = newlat
                                     location.longitude = newlng
                                     location.altitude = 0.0
-                                    location.speed = 0F
+                                    location.speed = mockSpeed
+                                    location.bearing = mockBearing
                                     location.accuracy = accuracy
                                     location.speedAccuracyMetersPerSecond = 0F
                                     param.result = location
@@ -211,7 +218,8 @@ object LocationHook {
                             location.latitude = newlat
                             location.longitude = newlng
                             location.altitude = 0.0
-                            location.speed = 0F
+                            location.speed = mockSpeed
+                            location.bearing = mockBearing
                             location.speedAccuracyMetersPerSecond = 0F
                             XposedBridge.log("GS: lat: ${location.latitude}, lon: ${location.longitude}")
                             try {
@@ -311,7 +319,8 @@ object LocationHook {
                             location.latitude = newlat
                             location.longitude = newlng
                             location.altitude = 0.0
-                            location.speed = 0F
+                            location.speed = mockSpeed
+                            location.bearing = mockBearing
                             location.speedAccuracyMetersPerSecond = 0F
                             XposedBridge.log("GS: lat: ${location.latitude}, lon: ${location.longitude}")
                             try {
@@ -344,7 +353,8 @@ object LocationHook {
                             location.latitude = newlat
                             location.longitude = newlng
                             location.altitude = 0.0
-                            location.speed = 0F
+                            location.speed = mockSpeed
+                            location.bearing = mockBearing
                             location.speedAccuracyMetersPerSecond = 0F
                             XposedBridge.log("GS: lat: ${location.latitude}, lon: ${location.longitude}")
                             try {

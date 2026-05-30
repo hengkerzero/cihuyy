@@ -325,7 +325,8 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
                 val start = walkStartLatLng ?: return@launch
                 val finish = walkFinishLatLng ?: return@launch
 
-                when (val result = OsrmRouteHelper.fetchRoute(start, finish)) {
+                val profile = OsrmRouteHelper.profileForSpeed(selectedSpeedKmh)
+                when (val result = OsrmRouteHelper.fetchRoute(start, finish, profile)) {
                     is RouteResult.Success -> {
                         walkRoutePoints = result.points
                         drawPolyline(result.points)

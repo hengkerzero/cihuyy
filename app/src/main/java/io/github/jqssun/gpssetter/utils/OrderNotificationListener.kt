@@ -106,7 +106,9 @@ class OrderNotificationListener : NotificationListenerService() {
         }
 
         // 4. Broadcast ke MapActivity agar UI update
-        val broadcastIntent = Intent(ACTION_ORDER_DETECTED)
+        val broadcastIntent = Intent(ACTION_ORDER_DETECTED).apply {
+            setPackage(packageName)
+        }
         sendBroadcast(broadcastIntent)
 
         Log.i(TAG, "GPS fake dimatikan otomatis karena orderan masuk!")

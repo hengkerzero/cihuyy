@@ -23,19 +23,32 @@ import java.net.URL
 object OsrmRouteHelper {
 
     private const val TAG = "OsrmRouteHelper"
-    private const val BASE_URL = "https://router.project-osrm.org/route/v1/foot"
+    private const val BASE_URL = "https://router.project-osrm.org/route/v1"
     private const val TIMEOUT_MS = 30_000L
     private const val MAX_RETRIES = 2
     private const val CONNECT_TIMEOUT = 15_000
     private const val READ_TIMEOUT = 20_000
 
     /**
+     * Pilih OSRM routing profile berdasarkan kecepatan yang dipilih user.
+     * - <= 12 km/h  -> foot   (jalan / lari)
+     * - <= 25 km/h  -> bike   (sepeda)
+     * - > 25 km/h   -> driving (motor / mobil)
+     */
+    fun profileForSpeed(speedKmh: Float): String = when {
+        speedKmh <= 12f -> "foot"
+        speedKmh <= 25f -> "bike"
+        else -> "driving"
+    }
+
+    /**
      * Fetch route dari OSRM API.
      * @param start titik awal
      * @param finish titik akhir
+     * @param profile OSRM profile (foot/bike/driving)
      * @return Result berisi list LatLng route, atau error message
      */
-    suspend fun fetchRoute(start: LatLng, finish: LatLng): RouteResult {
+    suspend fun fetchRoute(start: LatLng, finish: LatLng, profile: String = "foot"): RouteResult {
         return withContext(Dispatchers.IO) {
             var lastError: String? = null
 
@@ -46,7 +59,7 @@ object OsrmRouteHelper {
                 }
 
                 val result = withTimeoutOrNull(TIMEOUT_MS) {
-                    tryFetchRoute(start, finish)
+                    tryFetchRoute(start, finish, profile)
                 }
 
                 when {
@@ -62,17 +75,27 @@ object OsrmRouteHelper {
                 }
             }
 
-            // Semua retry gagal -> fallback garis lurus
+            // Profile selain "foot" mungkin tidak tersedia di server publik OSRM.
+            // Coba sekali lagi pakai "foot" sebelum menyerah ke garis lurus.
+            if (profile != "foot") {
+                Log.w(TAG, "Profile '$profile' gagal, fallback coba 'foot'")
+                val footResult = withTimeoutOrNull(TIMEOUT_MS) {
+                    tryFetchRoute(start, finish, "foot")
+                }
+                if (footResult is RouteResult.Success) return@withContext footResult
+            }
+
+            // Semua percobaan gagal -> fallback garis lurus
             Log.w(TAG, "All retries failed, falling back to straight line")
             val fallbackPoints = generateStraightLineFallback(start, finish)
             RouteResult.Fallback(fallbackPoints, lastError ?: "Unknown error")
         }
     }
 
-    private suspend fun tryFetchRoute(start: LatLng, finish: LatLng): RouteResult {
+    private suspend fun tryFetchRoute(start: LatLng, finish: LatLng, profile: String): RouteResult {
         return try {
-            // OSRM format: /route/v1/foot/lng1,lat1;lng2,lat2
-            val urlStr = "$BASE_URL/${start.longitude},${start.latitude};${finish.longitude},${finish.latitude}?overview=full&geometries=geojson&steps=false"
+            // OSRM format: /route/v1/{profile}/lng1,lat1;lng2,lat2
+            val urlStr = "$BASE_URL/$profile/${start.longitude},${start.latitude};${finish.longitude},${finish.latitude}?overview=full&geometries=geojson&steps=false"
             Log.d(TAG, "Fetching route: $urlStr")
 
             val url = URL(urlStr)

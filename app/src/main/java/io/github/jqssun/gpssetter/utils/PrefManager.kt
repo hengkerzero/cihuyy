@@ -18,6 +18,12 @@ object PrefManager   {
     private const val START = "start"
     private const val LATITUDE = "latitude"
     private const val LONGITUDE = "longitude"
+    // Key presisi tinggi (Double disimpan sebagai String). Reader baru pakai ini,
+    // key Float lama tetap ditulis untuk kompatibilitas mundur.
+    private const val LATITUDE_HP = "latitude_hp"
+    private const val LONGITUDE_HP = "longitude_hp"
+    private const val MOCK_SPEED = "mock_speed"
+    private const val MOCK_BEARING = "mock_bearing"
     private const val HOOKED_SYSTEM = "system_hooked"
     private const val RANDOM_POSITION = "random_position"
     private const val ACCURACY_SETTING = "accuracy_level"
@@ -50,10 +56,18 @@ object PrefManager   {
         get() = pref.getBoolean(START, false)
 
     val getLat : Double
-        get() = pref.getFloat(LATITUDE, 40.7128F).toDouble()
+        get() = pref.getString(LATITUDE_HP, null)?.toDoubleOrNull()
+            ?: pref.getFloat(LATITUDE, 40.7128F).toDouble()
 
     val getLng : Double
-        get() = pref.getFloat(LONGITUDE, -74.0060F).toDouble()
+        get() = pref.getString(LONGITUDE_HP, null)?.toDoubleOrNull()
+            ?: pref.getFloat(LONGITUDE, -74.0060F).toDouble()
+
+    val getSpeed : Float
+        get() = pref.getFloat(MOCK_SPEED, 0f)
+
+    val getBearing : Float
+        get() = pref.getFloat(MOCK_BEARING, 0f)
 
     var isSystemHooked : Boolean
         get() = pref.getBoolean(HOOKED_SYSTEM, false)
@@ -87,15 +101,34 @@ object PrefManager   {
         get() = pref.getBoolean(AUTO_OFF_ON_ORDER, false)
         set(value) = pref.edit().putBoolean(AUTO_OFF_ON_ORDER, value).apply()
 
-    fun update(start:Boolean, la: Double, ln: Double) {
-        runInBackground {
-            val prefEditor = pref.edit()
-            prefEditor.putFloat(LATITUDE, la.toFloat())
-            prefEditor.putFloat(LONGITUDE, ln.toFloat())
-            prefEditor.putBoolean(START, start)
-            prefEditor.apply()
-        }
+    fun update(start: Boolean, la: Double, ln: Double) {
+        // Teleport biasa = diam di tempat, jadi speed & bearing = 0.
+        updateInternal(start, la, ln, 0f, 0f)
+    }
 
+    /**
+     * Update lokasi sekaligus speed (m/s) & bearing (derajat).
+     * Dipakai oleh Auto Walk agar lokasi mock terlihat bergerak natural.
+     */
+    fun updateWithMotion(start: Boolean, la: Double, ln: Double, speedMs: Float, bearingDeg: Float) {
+        updateInternal(start, la, ln, speedMs, bearingDeg)
+    }
+
+    private fun updateInternal(start: Boolean, la: Double, ln: Double, speedMs: Float, bearingDeg: Float) {
+        runInBackground {
+            pref.edit().apply {
+                // Presisi tinggi (Double) — sumber kebenaran untuk reader baru
+                putString(LATITUDE_HP, la.toString())
+                putString(LONGITUDE_HP, ln.toString())
+                // Legacy Float — dipertahankan agar reader lama tetap berfungsi
+                putFloat(LATITUDE, la.toFloat())
+                putFloat(LONGITUDE, ln.toFloat())
+                putFloat(MOCK_SPEED, speedMs)
+                putFloat(MOCK_BEARING, bearingDeg)
+                putBoolean(START, start)
+                apply()
+            }
+        }
     }
 
     @OptIn(DelicateCoroutinesApi::class)

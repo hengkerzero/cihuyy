@@ -121,6 +121,19 @@ class RouteWalkService : Service() {
     }
 
     private fun handleStart(intent: Intent) {
+        // PENTING: selalu promote ke foreground PALING AWAL.
+        // startForegroundService() mewajibkan startForeground() dipanggil < 5 detik.
+        // Kalau di-skip (mis. start ganda atau rute invalid) Android melempar
+        // ForegroundServiceDidNotStartInTimeException -> force close.
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification("Auto Walk"))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start foreground: ${e.message}")
+            broadcastState(STATE_ERROR)
+            stopSelf()
+            return
+        }
+
         if (isWalking) {
             Log.w(TAG, "Already walking, ignoring duplicate start")
             return
@@ -134,6 +147,7 @@ class RouteWalkService : Service() {
         if (lats == null || lngs == null || lats.size < 2 || lats.size != lngs.size) {
             Log.e(TAG, "Invalid route data: lats=${lats?.size}, lngs=${lngs?.size}")
             broadcastState(STATE_ERROR)
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return
         }
@@ -154,14 +168,8 @@ class RouteWalkService : Service() {
 
         Log.d(TAG, "Starting walk: ${routePoints.size} points, totalDist=${totalRouteDistance}m, speed=${speedMs} m/s (${speedKmh} km/h)")
 
-        try {
-            startForeground(NOTIFICATION_ID, buildNotification("Auto Walk ${speedKmh.toInt()} km/h"))
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start foreground: ${e.message}")
-            broadcastState(STATE_ERROR)
-            stopSelf()
-            return
-        }
+        // Update teks notifikasi dgn speed sebenarnya (foreground sudah aktif di atas)
+        updateNotification("Auto Walk ${speedKmh.toInt()} km/h")
 
         broadcastState(STATE_WALKING)
         startWalking()
@@ -261,8 +269,12 @@ class RouteWalkService : Service() {
             // Tambah noise GPS kecil (proporsional dengan speed — lebih cepat = lebih kecil)
             val (noisyLat, noisyLng) = addGpsNoise(currentLat, currentLng)
 
-            // Update GPS mock
-            PrefManager.update(true, noisyLat, noisyLng)
+            // Bearing = arah pergerakan di segment ini (untuk lokasi yang lebih believable)
+            val bearing = OsrmRouteHelper.bearingBetween(from, to).toFloat()
+
+            // Update GPS mock + speed (m/s) & bearing — bikin gerakan terlihat natural
+            // dan menyulitkan anti-cheat yang mengecek "posisi pindah tapi speed 0".
+            PrefManager.updateWithMotion(true, noisyLat, noisyLng, effectiveSpeed.toFloat(), bearing)
 
             // Broadcast progress
             val progress = if (totalRouteDistance > 0) {

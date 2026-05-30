@@ -18,17 +18,23 @@ class Xshare {
     )
 
     val getLat: Double
-    get() = pref().getFloat(
-        "latitude",
-        45.0000000.toFloat()
-    ).toDouble()
+    get() = pref().let { p ->
+        p.getString("latitude_hp", null)?.toDoubleOrNull()
+            ?: p.getFloat("latitude", 45.0000000.toFloat()).toDouble()
+    }
 
 
     val getLng : Double
-    get() = pref().getFloat(
-        "longitude",
-        0.0000000.toFloat()
-    ).toDouble()
+    get() = pref().let { p ->
+        p.getString("longitude_hp", null)?.toDoubleOrNull()
+            ?: p.getFloat("longitude", 0.0000000.toFloat()).toDouble()
+    }
+
+    val getSpeed : Float
+    get() = pref().getFloat("mock_speed", 0f)
+
+    val getBearing : Float
+    get() = pref().getFloat("mock_bearing", 0f)
 
     val isHookedSystem : Boolean
     get() = pref().getBoolean(

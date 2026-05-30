@@ -1,55 +1,10 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <!-- Location pin body -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,20C42.95,20 34,28.95 34,40C34,55 54,76 54,76C54,76 74,55 74,40C74,28.95 65.05,20 54,20Z"/>
-
-    <!-- Inner circle -->
-    <path
-        android:fillColor="#1E88E5"
-        android:pathData="M54,33C50.13,33 47,36.13 47,40C47,43.87 50.13,47 54,47C57.87,47 61,43.87 61,40C61,36.13 57.87,33 54,33Z"/>
-
-    <!-- Walking figure (stylized) -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,35.5A1.5,1.5 0,1 1,54 38.5A1.5,1.5 0,1 1,54 35.5Z"/>
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="0.8"
-        android:fillColor="#00000000"
-        android:pathData="M53.2,39L52,42.5L53.5,44L55,42.5L56,39"/>
-
-    <!-- "C" letter accent -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.5"
-        android:pathData="M57,37.5A3.5,3.5 0,0 0,51 37.5"
-        android:fillAlpha="0"
-        android:strokeLineCap="round"/>
-
-    <!-- Speed lines (motion indicator) -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.2"
-        android:fillColor="#00000000"
-        android:pathData="M30,50L36,50"
-        android:strokeLineCap="round"/>
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.2"
-        android:fillColor="#00000000"
-        android:pathData="M28,54L35,54"
-        android:strokeLineCap="round"/>
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.2"
-        android:fillColor="#00000000"
-        android:pathData="M30,58L36,58"
-        android:strokeLineCap="round"/>
+    android:width="800dp"
+    android:height="800dp"
+    android:viewportWidth="800"
+    android:viewportHeight="800">
+  <path
+      android:fillColor="#FF000000"
+      android:pathData="M509.96,290.04L509.97,290L509.93,290.06L240,405.38L376.37,423.65L394.62,560L509.94,290.1L510,290.02L509.96,290.04Z"
+      android:fillType="nonZero"/>
 </vector>

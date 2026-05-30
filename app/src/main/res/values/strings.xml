@@ -1,8 +1,8 @@
 <resources>
 
     <!-- Home -->
-    <string name="app_name">Cihuyy</string>
-    <string name="xposed_desc">Cihuyy — GPS spoofer with Auto Walk, powered by Xposed framework.</string>
+    <string name="app_name">GPS Setter</string>
+    <string name="xposed_desc">A GPS setter based on the Xposed framework.</string>
     <string name="search">Search</string>
     <string name="address">United States</string>
     <string name="favorites">Favorites</string>
@@ -22,7 +22,7 @@
 
     <!-- About -->
     <string name="about">About</string>
-    <string name="about_info">Cihuyy — GPS Spoofer\n\nDeveloped by @hengkerzero (2025)\nBased on GPS Setter by @jqssun &amp; @Android1500\n\nFitur: Fake GPS, Auto Walk, Joystick, Xposed Hook.\nRepo: github.com/hengkerzero/cihuyy</string>
+    <string name="about_info">Brought to you by \n@jqssun (2024-2025) \n@Android1500 (2022-2023) \n\nA GPS setter based on the Xposed framework.</string>
 
     <!-- Update -->
     <string name="download_manager_description">Downloading update</string>

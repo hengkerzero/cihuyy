@@ -1,0 +1,3 @@
+## 2024-05-19 - Discoverability of Icon-Only Buttons
+**Learning:** Sighted users frequently struggle to discern the exact function of icon-only Material buttons, as `android:contentDescription` only serves screen reader users. Simply adding `app:tooltipText` (rather than `android:tooltipText` for broader compatibility) mapped to the same string resource significantly bridges this gap without compromising the clean interface design.
+**Action:** Always ensure that any icon-only interactive element not only has a `contentDescription` for accessibility but also a `tooltipText` to aid visual discoverability for all users.

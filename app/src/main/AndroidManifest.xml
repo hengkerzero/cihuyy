@@ -21,7 +21,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.GPSSetter"
+        android:theme="@style/Theme.Cihuyy"
         tools:targetApi="34">
         <activity
             android:name=".ui.ActivitySettings"
@@ -124,7 +124,7 @@
             android:name=".utils.StopGpsReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="io.github.jqssun.gpssetter.ACTION_STOP_GPS" />
+                <action android:name="id.hengker.cihuyy.ACTION_STOP_GPS" />
             </intent-filter>
         </receiver>
     </application>

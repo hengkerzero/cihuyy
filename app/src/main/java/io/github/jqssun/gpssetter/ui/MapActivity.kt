@@ -11,6 +11,8 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import androidx.core.app.ActivityCompat
@@ -88,6 +90,13 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
     // Speed dari slider (km/h)
     private var selectedSpeedKmh: Float = 5f
 
+    // === Reconnect / restore tracking ===
+    // Waktu broadcast terakhir dari service sejak Activity ini dibuat.
+    // Dipakai untuk mendeteksi apakah service masih hidup setelah restore.
+    private var lastWalkBroadcastTime: Long = 0L
+    private val reconnectHandler = Handler(Looper.getMainLooper())
+    private var reconnectCheckRunnable: Runnable? = null
+
     // Regex
     private val coordRegex = Pattern.compile("(-?\\d+\\.\\d+),(-?\\d+\\.\\d+)")
     private val placeNameRegex = Pattern.compile("\\(([^)]+)\\)")
@@ -104,6 +113,8 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
     // === Broadcast Receiver ===
     private val walkReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            // Catat bahwa service masih hidup (untuk verifikasi reconnect).
+            lastWalkBroadcastTime = System.currentTimeMillis()
             when (intent?.action) {
                 RouteWalkService.BROADCAST_PROGRESS -> {
                     val progress = intent.getIntExtra(RouteWalkService.EXTRA_PROGRESS, 0)
@@ -254,6 +265,10 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
             setOnMapClickListener(this@MapActivity)
         }
+
+        // Nyambung lagi ke sesi Auto Walk yang mungkin masih berjalan
+        // (setelah rotasi layar atau Activity/proses di-recreate).
+        restoreWalkSessionIfNeeded()
     }
 
     private fun offerSaveToFavorite() {
@@ -482,6 +497,8 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         } catch (e: Exception) {
             Log.w(TAG, "Stop error: ${e.message}")
         }
+        // Bersihkan sesi tersimpan langsung (jaga-jaga kalau service sudah mati).
+        PrefManager.clearWalkSession()
         resetWalkState()
     }
 
@@ -491,6 +508,7 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         walkFinishLatLng = null
         walkRoutePoints = emptyList()
         routeFetchJob?.cancel()
+        reconnectCheckRunnable?.let { reconnectHandler.removeCallbacks(it) }
 
         walkStartMarker?.remove()
         walkStartMarker = null
@@ -512,6 +530,110 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         binding.speedSlider.isEnabled = true
     }
 
+    // === Reconnect ke sesi walk yang sedang berjalan ===
+
+    /**
+     * Dipanggil saat peta siap. Jika ada sesi Auto Walk yang masih aktif
+     * (tersimpan oleh [RouteWalkService]), pulihkan tampilan walk-mode lengkap
+     * dengan rute, marker, progress, dan state-nya, lalu sambungkan kembali
+     * ke broadcast service. Mengatasi UI reset saat rotasi / proses di-recreate.
+     */
+    private fun restoreWalkSessionIfNeeded() {
+        if (!PrefManager.isWalkSessionActive) return
+
+        val points = OsrmRouteHelper.decodeRoute(PrefManager.walkSessionRoute)
+        if (points.size < 2) {
+            // Data rusak / tidak lengkap — bersihkan saja.
+            PrefManager.clearWalkSession()
+            return
+        }
+
+        val savedState = PrefManager.walkSessionState
+        val savedProgress = PrefManager.walkSessionProgress.coerceIn(0, 100)
+        Log.d(TAG, "Restoring walk session: ${points.size} pts, state=$savedState, progress=$savedProgress")
+
+        // Pulihkan data inti
+        walkRoutePoints = points
+        selectedSpeedKmh = PrefManager.walkSessionSpeedKmh.coerceIn(1f, 80f)
+        walkStartLatLng = points.first()
+        walkFinishLatLng = points.last()
+
+        // Masuk ke mode WALK
+        appMode = AppMode.WALK
+        binding.chipWalk.isChecked = true
+        binding.startButton.visibility = View.GONE
+        binding.stopButton.visibility = View.GONE
+        binding.addfavorite.visibility = View.GONE
+        binding.favoriteList.visibility = View.GONE
+        binding.walkControlsPanel.visibility = View.VISIBLE
+
+        // Pulihkan slider (dinonaktifkan selama walk berjalan)
+        binding.speedSlider.value = selectedSpeedKmh
+        binding.speedValueText.text = "${selectedSpeedKmh.toInt()} km/h"
+        binding.speedSlider.isEnabled = false
+        binding.walkSpeedLayout.visibility = View.VISIBLE
+
+        // Pulihkan marker START/FINISH + polyline di peta
+        walkStartMarker?.remove()
+        walkStartMarker = mMap.addMarker(
+            MarkerOptions()
+                .position(points.first())
+                .title("START")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+        )
+        walkFinishMarker?.remove()
+        walkFinishMarker = mMap.addMarker(
+            MarkerOptions()
+                .position(points.last())
+                .title("FINISH")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+        )
+        drawPolyline(points)
+
+        // Pulihkan progress UI
+        binding.walkActionButtons.visibility = View.VISIBLE
+        binding.walkProgressLayout.visibility = View.VISIBLE
+        binding.walkProgressBar.progress = savedProgress
+        binding.walkProgressText.text = "$savedProgress%"
+        binding.btnWalkStop.text = "Stop"
+
+        if (savedState == PrefManager.WALK_STATE_PAUSED) {
+            walkState = WalkState.PAUSED
+            binding.walkHintText.text = "Dijeda — $savedProgress%"
+            binding.btnWalkPlay.text = "Lanjut"
+            binding.btnWalkPlay.setIconResource(R.drawable.ic_play)
+        } else {
+            walkState = WalkState.WALKING
+            binding.walkHintText.text = "Menyambung walk ${selectedSpeedKmh.toInt()} km/h..."
+            binding.btnWalkPlay.text = "Jeda"
+            binding.btnWalkPlay.setIconResource(R.drawable.ic_baseline_pause_24)
+            // Verifikasi service masih hidup; kalau tidak, bersihkan UI agar tidak nyangkut.
+            scheduleReconnectCheck()
+        }
+
+        showToast("Menyambung Auto Walk yang sedang berjalan…")
+    }
+
+    /**
+     * Setelah restore ke state WALKING, beri waktu service untuk mengirim broadcast.
+     * Service yang hidup mengirim progress tiap 200ms. Jika dalam 3 detik tidak ada
+     * broadcast sama sekali, berarti service sudah mati (mis. proses di-kill total),
+     * jadi bersihkan sesi & UI supaya tidak menampilkan progress yang membeku.
+     */
+    private fun scheduleReconnectCheck() {
+        reconnectCheckRunnable?.let { reconnectHandler.removeCallbacks(it) }
+        val runnable = Runnable {
+            if (walkState == WalkState.WALKING && lastWalkBroadcastTime == 0L) {
+                Log.w(TAG, "No broadcast after restore — service appears dead, finalizing UI")
+                PrefManager.clearWalkSession()
+                showToast("Sesi walk sebelumnya sudah berakhir")
+                resetWalkState()
+            }
+        }
+        reconnectCheckRunnable = runnable
+        reconnectHandler.postDelayed(runnable, 3000L)
+    }
+
     // === Broadcast handlers ===
 
     private fun updateWalkProgress(progress: Int, currentIdx: Int, total: Int) {
@@ -521,6 +643,8 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
     private fun onWalkFinished() {
         walkState = WalkState.IDLE
+        reconnectCheckRunnable?.let { reconnectHandler.removeCallbacks(it) }
+        PrefManager.clearWalkSession()
         binding.walkHintText.text = "Selesai! Tap untuk rute baru"
         binding.walkProgressBar.progress = 100
         binding.walkProgressText.text = "100%"
@@ -564,6 +688,7 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
                 }
             }
             RouteWalkService.STATE_ERROR -> {
+                PrefManager.clearWalkSession()
                 showToast("Walk error!")
                 resetWalkState()
             }
@@ -814,6 +939,9 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
         // 2. Force reset PrefManager — GPS off
         PrefManager.update(false, PrefManager.getLat, PrefManager.getLng)
+        // Hapus sesi walk tersimpan + batalkan cek reconnect yang tertunda.
+        PrefManager.clearWalkSession()
+        reconnectCheckRunnable?.let { reconnectHandler.removeCallbacks(it) }
 
         // 3. Reset walk state
         walkState = WalkState.IDLE
@@ -868,6 +996,7 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
             unregisterReceiver(orderDetectedReceiver)
         } catch (_: Exception) {
         }
+        reconnectCheckRunnable?.let { reconnectHandler.removeCallbacks(it) }
         routeFetchJob?.cancel()
         super.onDestroy()
     }

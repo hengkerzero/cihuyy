@@ -227,6 +227,29 @@ object OsrmRouteHelper {
         val x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
         return (Math.toDegrees(Math.atan2(y, x)) + 360) % 360
     }
+
+    /**
+     * Encode route jadi String ringkas "lat,lng;lat,lng;..." untuk disimpan
+     * di SharedPreferences (dipakai persist sesi Auto Walk).
+     */
+    fun encodeRoute(points: List<LatLng>): String =
+        points.joinToString(";") { "${it.latitude},${it.longitude}" }
+
+    /**
+     * Decode String hasil [encodeRoute] kembali jadi list LatLng.
+     * Segmen yang tidak valid akan diabaikan.
+     */
+    fun decodeRoute(encoded: String?): List<LatLng> {
+        if (encoded.isNullOrBlank()) return emptyList()
+        return encoded.split(";").mapNotNull { seg ->
+            val parts = seg.split(",")
+            if (parts.size != 2) return@mapNotNull null
+            val lat = parts[0].toDoubleOrNull() ?: return@mapNotNull null
+            val lng = parts[1].toDoubleOrNull() ?: return@mapNotNull null
+            if (lat !in -90.0..90.0 || lng !in -180.0..180.0) return@mapNotNull null
+            LatLng(lat, lng)
+        }
+    }
 }
 
 sealed class RouteResult {

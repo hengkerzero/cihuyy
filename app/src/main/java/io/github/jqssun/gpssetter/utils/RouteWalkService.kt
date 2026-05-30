@@ -146,6 +146,7 @@ class RouteWalkService : Service() {
 
         if (lats == null || lngs == null || lats.size < 2 || lats.size != lngs.size) {
             Log.e(TAG, "Invalid route data: lats=${lats?.size}, lngs=${lngs?.size}")
+            PrefManager.clearWalkSession()
             broadcastState(STATE_ERROR)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -168,6 +169,14 @@ class RouteWalkService : Service() {
 
         Log.d(TAG, "Starting walk: ${routePoints.size} points, totalDist=${totalRouteDistance}m, speed=${speedMs} m/s (${speedKmh} km/h)")
 
+        // Persist sesi walk supaya UI bisa nyambung lagi setelah rotasi / recreate.
+        PrefManager.saveWalkSession(
+            PrefManager.WALK_STATE_WALKING,
+            speedKmh,
+            OsrmRouteHelper.encodeRoute(routePoints),
+            0
+        )
+
         // Update teks notifikasi dgn speed sebenarnya (foreground sudah aktif di atas)
         updateNotification("Auto Walk ${speedKmh.toInt()} km/h")
 
@@ -179,6 +188,7 @@ class RouteWalkService : Service() {
         if (!isWalking || isPaused) return
         isPaused = true
         walkJob?.cancel()
+        PrefManager.updateWalkSessionState(PrefManager.WALK_STATE_PAUSED)
         broadcastState(STATE_PAUSED)
         val progress = if (totalRouteDistance > 0) ((distanceTraveled / totalRouteDistance) * 100).toInt() else 0
         updateNotification("Dijeda — $progress%")
@@ -188,6 +198,7 @@ class RouteWalkService : Service() {
     private fun handleResume() {
         if (!isWalking || !isPaused) return
         isPaused = false
+        PrefManager.updateWalkSessionState(PrefManager.WALK_STATE_WALKING)
         broadcastState(STATE_WALKING)
         updateNotification("Auto Walk ${speedKmh.toInt()} km/h")
         startWalking()
@@ -199,6 +210,9 @@ class RouteWalkService : Service() {
         isWalking = false
         isPaused = false
         walkJob?.cancel()
+
+        // Sesi selesai — hapus state persist supaya tidak di-restore lagi.
+        PrefManager.clearWalkSession()
 
         // PENTING: Reset GPS state supaya isStarted = false
         // Ini mencegah bug "Stop GPS dulu" saat mau switch mode
@@ -221,6 +235,7 @@ class RouteWalkService : Service() {
                 // Normal pause/stop
             } catch (e: Exception) {
                 Log.e(TAG, "Walk error: ${e.message}", e)
+                PrefManager.clearWalkSession()
                 withContext(Dispatchers.Main) {
                     broadcastState(STATE_ERROR)
                 }
@@ -242,6 +257,7 @@ class RouteWalkService : Service() {
     private suspend fun walkLoop() {
         val tickSeconds = TICK_INTERVAL_MS / 1000.0
         var lastNotifUpdate = 0L
+        var lastPrefUpdate = 0L
 
         while (isWalking && !isPaused && currentSegmentIndex < segmentDistances.size) {
 
@@ -282,6 +298,13 @@ class RouteWalkService : Service() {
             } else 0
 
             broadcastProgress(progress, currentSegmentIndex, routePoints.size)
+
+            // Persist progress + heartbeat berkala (1 detik) untuk restore setelah recreate.
+            val nowTick = System.currentTimeMillis()
+            if (nowTick - lastPrefUpdate > 1000) {
+                PrefManager.updateWalkSessionProgress(progress)
+                lastPrefUpdate = nowTick
+            }
 
             // Update notification setiap 3 detik
             val now = System.currentTimeMillis()

@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.GPSSetter" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Cihuyy" parent="Theme.Material3.DayNight.NoActionBar">
 
         <item name="colorPrimary">@color/primary</item>
 
@@ -8,7 +8,7 @@
         <item name="android:windowLightStatusBar">@bool/lightStatusNav</item>
         <item name="android:windowLightNavigationBar">@bool/lightStatusNav</item>
         <item name="android:overScrollMode">@integer/overscroll_enabled</item>
-        <item name="actionOverflowMenuStyle">@style/GPSSetterOverflowMenu</item>
+        <item name="actionOverflowMenuStyle">@style/CihuyyOverflowMenu</item>
 
     </style>
 </resources>

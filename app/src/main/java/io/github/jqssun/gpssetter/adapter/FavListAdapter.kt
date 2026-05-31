@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -19,6 +20,7 @@ class FavListAdapter(
 
    inner class ViewHolder(view: View): RecyclerView.ViewHolder(view) {
 
+        private val content: LinearLayout = view.findViewById(R.id.item_content)
         private val address: TextView = view.findViewById(R.id.address)
         private val delete: ImageView = itemView.findViewById(R.id.del)
 
@@ -27,7 +29,7 @@ class FavListAdapter(
             delete.setOnClickListener {
                 onItemDelete?.invoke(favorite)
             }
-            address.setOnClickListener {
+            content.setOnClickListener {
                 onItemClick?.invoke(favorite)
             }
         }
@@ -35,7 +37,7 @@ class FavListAdapter(
 
     class FavListComparetor : DiffUtil.ItemCallback<Favorite>() {
         override fun areItemsTheSame(oldItem: Favorite, newItem: Favorite): Boolean {
-            return oldItem.address == newItem.address
+            return oldItem.id == newItem.id
         }
 
         override fun areContentsTheSame(oldItem: Favorite, newItem: Favorite): Boolean {

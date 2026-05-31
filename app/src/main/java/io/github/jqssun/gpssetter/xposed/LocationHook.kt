@@ -19,6 +19,8 @@ import org.lsposed.hiddenapibypass.HiddenApiBypass
 import timber.log.Timber
 import java.util.*
 import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sin
 
 object LocationHook {
 
@@ -33,21 +35,64 @@ object LocationHook {
     private const val earth = 6378137.0
     private val settings = Xshare()
     private var mLastUpdated: Long = 0
+
+    // --- Random Location (natural GPS drift) ---
+    // Posisi acak dibuat seperti drift GPS asli saat diam: bergerak pelan dan
+    // halus dalam radius kecil, bukan loncat ke titik acak baru tiap update.
+    private const val JITTER_RADIUS = 3.0          // radius maksimum drift (meter)
+    private const val JITTER_SPEED = 0.3           // kecepatan drift (meter/detik)
+    private const val JITTER_TARGET_INTERVAL = 3000L // pilih target baru tiap 3 detik
+    private var curOffN: Double = 0.0              // offset saat ini ke utara (meter)
+    private var curOffE: Double = 0.0              // offset saat ini ke timur (meter)
+    private var tgtOffN: Double = 0.0              // target offset utara (meter)
+    private var tgtOffE: Double = 0.0              // target offset timur (meter)
+    private var lastJitterTarget: Long = 0
+    private var lastJitterCalc: Long = 0
+
     private val ignorePkg = arrayListOf("com.android.location.fused", BuildConfig.APPLICATION_ID)
 
     private val context by lazy { AndroidAppHelper.currentApplication() as Context }
 
     private fun updateLocation() {
         try {
-            mLastUpdated = System.currentTimeMillis()
-            val x = (rand.nextInt(50) - 15).toDouble()
-            val y = (rand.nextInt(50) - 15).toDouble()
-            val dlat = x / earth
-            val dlng = y / (earth * cos(pi * settings.getLat / 180.0))
-            newlat =
-                if (settings.isRandomPosition) settings.getLat + (dlat * 180.0 / pi) else settings.getLat
-            newlng =
-                if (settings.isRandomPosition) settings.getLng + (dlng * 180.0 / pi) else settings.getLng
+            val now = System.currentTimeMillis()
+            mLastUpdated = now
+
+            if (settings.isRandomPosition) {
+                // Pilih target acak baru di dalam radius secara berkala.
+                if (now - lastJitterTarget > JITTER_TARGET_INTERVAL) {
+                    lastJitterTarget = now
+                    val angle = rand.nextDouble() * 2.0 * pi
+                    val r = rand.nextDouble() * JITTER_RADIUS
+                    tgtOffN = r * cos(angle)
+                    tgtOffE = r * sin(angle)
+                }
+
+                // Geser offset saat ini menuju target dengan kecepatan terbatas
+                // (berbasis waktu, jadi tetap halus walau frekuensi update berubah).
+                val dt = (now - lastJitterCalc).coerceIn(0L, 1000L) / 1000.0
+                lastJitterCalc = now
+                val step = JITTER_SPEED * dt
+                val dN = tgtOffN - curOffN
+                val dE = tgtOffE - curOffE
+                val dist = hypot(dN, dE)
+                if (dist <= step || dist == 0.0) {
+                    curOffN = tgtOffN
+                    curOffE = tgtOffE
+                } else {
+                    curOffN += dN / dist * step
+                    curOffE += dE / dist * step
+                }
+
+                val dlat = curOffN / earth
+                val dlng = curOffE / (earth * cos(pi * settings.getLat / 180.0))
+                newlat = settings.getLat + (dlat * 180.0 / pi)
+                newlng = settings.getLng + (dlng * 180.0 / pi)
+            } else {
+                newlat = settings.getLat
+                newlng = settings.getLng
+            }
+
             accuracy = settings.accuracy!!.toFloat()
             mockSpeed = settings.getSpeed
             mockBearing = settings.getBearing

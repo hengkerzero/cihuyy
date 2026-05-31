@@ -49,6 +49,19 @@ object OsrmRouteHelper {
      * @return Result berisi list LatLng route, atau error message
      */
     suspend fun fetchRoute(start: LatLng, finish: LatLng, profile: String = "foot"): RouteResult {
+        return fetchRoute(listOf(start, finish), profile)
+    }
+
+    /**
+     * Fetch route yang melewati beberapa waypoint sekaligus.
+     * OSRM mendukung banyak titik dalam satu request:
+     *   /route/v1/{profile}/lng,lat;lng,lat;lng,lat
+     * Cocok untuk rute multi-titik & loop (titik awal == titik akhir).
+     */
+    suspend fun fetchRoute(waypoints: List<LatLng>, profile: String = "foot"): RouteResult {
+        if (waypoints.size < 2) {
+            return RouteResult.Error("Minimal 2 titik diperlukan")
+        }
         return withContext(Dispatchers.IO) {
             var lastError: String? = null
 
@@ -59,7 +72,7 @@ object OsrmRouteHelper {
                 }
 
                 val result = withTimeoutOrNull(TIMEOUT_MS) {
-                    tryFetchRoute(start, finish, profile)
+                    tryFetchRoute(waypoints, profile)
                 }
 
                 when {
@@ -80,22 +93,23 @@ object OsrmRouteHelper {
             if (profile != "foot") {
                 Log.w(TAG, "Profile '$profile' gagal, fallback coba 'foot'")
                 val footResult = withTimeoutOrNull(TIMEOUT_MS) {
-                    tryFetchRoute(start, finish, "foot")
+                    tryFetchRoute(waypoints, "foot")
                 }
                 if (footResult is RouteResult.Success) return@withContext footResult
             }
 
-            // Semua percobaan gagal -> fallback garis lurus
+            // Semua percobaan gagal -> fallback garis lurus lewat semua titik
             Log.w(TAG, "All retries failed, falling back to straight line")
-            val fallbackPoints = generateStraightLineFallback(start, finish)
+            val fallbackPoints = generateStraightLineFallback(waypoints)
             RouteResult.Fallback(fallbackPoints, lastError ?: "Unknown error")
         }
     }
 
-    private suspend fun tryFetchRoute(start: LatLng, finish: LatLng, profile: String): RouteResult {
+    private suspend fun tryFetchRoute(waypoints: List<LatLng>, profile: String): RouteResult {
         return try {
-            // OSRM format: /route/v1/{profile}/lng1,lat1;lng2,lat2
-            val urlStr = "$BASE_URL/$profile/${start.longitude},${start.latitude};${finish.longitude},${finish.latitude}?overview=full&geometries=geojson&steps=false"
+            // OSRM format: /route/v1/{profile}/lng1,lat1;lng2,lat2;...
+            val coords = waypoints.joinToString(";") { "${it.longitude},${it.latitude}" }
+            val urlStr = "$BASE_URL/$profile/$coords?overview=full&geometries=geojson&steps=false"
             Log.d(TAG, "Fetching route: $urlStr")
 
             val url = URL(urlStr)
@@ -179,23 +193,27 @@ object OsrmRouteHelper {
     }
 
     /**
-     * Fallback: buat titik-titik garis lurus antara start dan finish.
+     * Fallback: buat titik-titik garis lurus menyambungkan semua waypoint.
      * Interval ±10 meter agar gerakan tetap smooth.
      */
-    private fun generateStraightLineFallback(start: LatLng, finish: LatLng): List<LatLng> {
+    private fun generateStraightLineFallback(waypoints: List<LatLng>): List<LatLng> {
         val points = mutableListOf<LatLng>()
-        val totalDistance = distanceBetween(start, finish)
-        val stepDistance = 10.0 // meter
+        for (seg in 0 until waypoints.size - 1) {
+            val start = waypoints[seg]
+            val finish = waypoints[seg + 1]
+            val totalDistance = distanceBetween(start, finish)
+            val stepDistance = 10.0 // meter
+            val steps = (totalDistance / stepDistance).toInt().coerceIn(1, 5000)
 
-        val steps = (totalDistance / stepDistance).toInt().coerceIn(2, 5000)
-
-        for (i in 0..steps) {
-            val fraction = i.toDouble() / steps
-            val lat = start.latitude + (finish.latitude - start.latitude) * fraction
-            val lng = start.longitude + (finish.longitude - start.longitude) * fraction
-            points.add(LatLng(lat, lng))
+            // Mulai dari 0 hanya di segment pertama agar titik sambungan tidak dobel
+            val startIdx = if (seg == 0) 0 else 1
+            for (i in startIdx..steps) {
+                val fraction = i.toDouble() / steps
+                val lat = start.latitude + (finish.latitude - start.latitude) * fraction
+                val lng = start.longitude + (finish.longitude - start.longitude) * fraction
+                points.add(LatLng(lat, lng))
+            }
         }
-
         return points
     }
 

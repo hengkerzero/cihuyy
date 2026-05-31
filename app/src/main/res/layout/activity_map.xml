@@ -40,17 +40,70 @@
             android:layout_height="match_parent"
             android:layout_width="match_parent"/>
 
-        <!-- ============ WALK MODE BOTTOM PANEL ============ -->
+        <!-- ============ BOTTOM BAR: Normal | Walk + tombol aksi tengah ============ -->
+        <LinearLayout
+            android:id="@+id/bottom_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_alignParentBottom="true"
+            android:background="@color/map_bottom_bar"
+            android:elevation="6dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
 
+            <!-- Segmen NORMAL (kiri) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/chip_normal"
+                style="@style/ModeToggleButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/mode_normal"
+                app:icon="@drawable/ic_baseline_my_location_24" />
+
+            <!-- Tombol aksi utama (Play/Stop) — TENGAH, dipakai mode Normal & Walk -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/center_action"
+                style="@style/MapFab"
+                android:contentDescription="@string/location_set"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:elevation="0dp"
+                app:backgroundTint="@color/map_fab_start"
+                app:icon="@drawable/ic_play" />
+
+            <!-- Segmen WALK (kanan) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/chip_walk"
+                style="@style/ModeToggleButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/mode_walk"
+                app:icon="@drawable/ic_baseline_directions_walk_24" />
+
+        </LinearLayout>
+
+        <!-- ============ WALK MODE PANEL (di atas bottom bar) ============ -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/walk_controls_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
+            android:layout_above="@id/bottom_bar"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentEnd="true"
             android:layout_marginStart="12dp"
             android:layout_marginEnd="12dp"
             android:layout_marginBottom="12dp"
-            android:elevation="12dp"
+            android:elevation="6dp"
             android:visibility="gone"
             app:cardCornerRadius="16dp"
             app:cardElevation="8dp"
@@ -69,10 +122,185 @@
                     android:layout_height="wrap_content"
                     android:text="Tap peta untuk titik START"
                     android:textAlignment="center"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorOnSurface"
                     android:paddingBottom="12dp" />
+
+                <!-- Baris kontrol waypoint: Loop (full width) + Undo/Reset -->
+                <LinearLayout
+                    android:id="@+id/walk_waypoint_controls"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- Loop sebagai list-item: teks kiri + switch kanan -->
+                    <LinearLayout
+                        android:id="@+id/walk_loop_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="?attr/selectableItemBackground"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/walk_loop"
+                                android:textSize="15sp"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/walk_loop_desc"
+                                android:textSize="12sp"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_walk_loop"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
+
+                    </LinearLayout>
+
+                    <!-- Undo + Reset: dua tombol selebar sama -->
+                    <LinearLayout
+                        android:id="@+id/walk_action_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingTop="8dp"
+                        android:baselineAligned="false">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_walk_undo"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:text="@string/walk_undo"
+                            app:icon="@drawable/ic_refresh"
+                            app:iconGravity="textStart"
+                            android:visibility="gone" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_walk_reset"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="@string/walk_reset"
+                            app:icon="@drawable/ic_delete"
+                            app:iconGravity="textStart"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Ringkasan rute: Jarak · Estimasi · Titik (muncul saat rute siap) -->
+                <LinearLayout
+                    android:id="@+id/walk_stats_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:baselineAligned="false"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="4dp"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/walk_stat_distance_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="–"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorPrimary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/walk_stat_distance"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/walk_stat_eta_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="–"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorPrimary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/walk_stat_eta"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/walk_stat_points_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorPrimary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/walk_stat_points"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
                 <!-- Speed Slider Section -->
                 <LinearLayout
@@ -80,6 +308,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
+                    android:paddingTop="4dp"
                     android:visibility="gone">
 
                     <!-- Speed label row -->
@@ -87,23 +316,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingBottom="4dp">
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_baseline_directions_walk_24"
-                            android:contentDescription="Speed icon" />
+                        android:gravity="center_vertical">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Kecepatan"
+                            android:text="@string/param_speed"
                             android:textSize="13sp"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:paddingStart="8dp" />
+                            android:textColor="?attr/colorOnSurfaceVariant" />
 
                         <TextView
                             android:id="@+id/speed_value_text"
@@ -129,68 +350,6 @@
                         app:trackHeight="6dp"
                         app:thumbRadius="10dp" />
 
-                    <!-- Speed range labels -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingBottom="12dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="1 km/h"
-                            android:textSize="11sp"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="80 km/h"
-                            android:textSize="11sp"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- Action Buttons Row -->
-                <LinearLayout
-                    android:id="@+id/walk_action_buttons"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center"
-                    android:visibility="gone"
-                    android:paddingTop="4dp">
-
-                    <!-- Reset/Stop button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_walk_stop"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="52dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:text="Reset"
-                        app:icon="@drawable/ic_stop"
-                        app:iconGravity="textStart"
-                        app:iconSize="20dp" />
-
-                    <!-- Play/Pause button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_walk_play"
-                        style="@style/Widget.Material3.Button"
-                        android:layout_width="0dp"
-                        android:layout_height="52dp"
-                        android:layout_weight="1.5"
-                        android:layout_marginStart="8dp"
-                        android:text="Mulai"
-                        app:icon="@drawable/ic_play"
-                        app:iconGravity="textStart"
-                        app:iconSize="20dp" />
-
                 </LinearLayout>
 
                 <!-- Progress Section -->
@@ -200,7 +359,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:visibility="gone"
-                    android:paddingTop="12dp">
+                    android:paddingTop="8dp">
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator
                         android:id="@+id/walk_progress_bar"
@@ -209,8 +368,8 @@
                         android:indeterminate="false"
                         android:max="100"
                         android:progress="0"
-                        app:trackThickness="8dp"
-                        app:trackCornerRadius="4dp" />
+                        app:trackThickness="6dp"
+                        app:trackCornerRadius="3dp" />
 
                     <TextView
                         android:id="@+id/walk_progress_text"
@@ -220,7 +379,7 @@
                         android:textAlignment="center"
                         android:textSize="12sp"
                         android:textColor="?attr/colorOnSurfaceVariant"
-                        android:paddingTop="6dp" />
+                        android:paddingTop="4dp" />
 
                 </LinearLayout>
 
@@ -230,80 +389,14 @@
 
         <!-- ============ END WALK MODE UI ============ -->
 
-        <!-- ============ AUTO-OFF ON ORDER TOGGLE ============ -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/auto_off_card"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_above="@id/mode_toggle_button"
-            android:layout_marginStart="12dp"
-            android:layout_marginBottom="8dp"
-            android:elevation="8dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="6dp"
-            app:strokeWidth="0dp">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="12dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Auto-Off Order"
-                    android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurface" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switch_auto_off_order"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:checked="false" />
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ============ MODE TOGGLE (Normal / Walk) : bottom-left pill ============ -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/mode_toggle_button"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:contentDescription="@string/mode_toggle_desc"
-            android:layout_width="wrap_content"
-            android:layout_height="56dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentBottom="true"
-            android:layout_marginStart="12dp"
-            android:layout_marginBottom="12dp"
-            android:elevation="8dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:text="@string/mode_normal"
-            android:textColor="@color/map_fab_icon"
-            app:backgroundTint="@color/map_fab_background"
-            app:cornerRadius="28dp"
-            app:icon="@drawable/ic_baseline_directions_walk_24"
-            app:iconGravity="textStart"
-            app:iconSize="22dp"
-            app:iconTint="@color/map_fab_icon"
-            app:rippleColor="#33FFFFFF" />
-
-        <!-- ============ LEFT COLUMN FABs ============ -->
+        <!-- ============ LEFT COLUMN FABs (sejajar dari bawah) ============ -->
         <LinearLayout
             android:id="@+id/left_fab_column"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_alignParentStart="true"
-            android:layout_above="@id/mode_toggle_button"
+            android:layout_above="@id/bottom_bar"
             android:layout_marginStart="12dp"
             android:layout_marginBottom="12dp">
 
@@ -329,14 +422,14 @@
 
         </LinearLayout>
 
-        <!-- ============ RIGHT COLUMN FABs ============ -->
+        <!-- ============ RIGHT COLUMN FABs (sejajar dari bawah) ============ -->
         <LinearLayout
             android:id="@+id/right_fab_column"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_alignParentEnd="true"
-            android:layout_alignParentBottom="true"
+            android:layout_above="@id/bottom_bar"
             android:layout_marginEnd="12dp"
             android:layout_marginBottom="12dp">
 
@@ -353,24 +446,6 @@
                 android:contentDescription="@string/delete_marker_desc"
                 android:layout_marginBottom="12dp"
                 app:icon="@drawable/ic_delete" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/start_button"
-                style="@style/MapFab"
-                android:contentDescription="@string/location_set"
-                android:layout_marginBottom="12dp"
-                app:backgroundTint="@color/map_fab_start"
-                app:icon="@drawable/ic_play"
-                android:visibility="visible" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/stop_button"
-                style="@style/MapFab"
-                android:contentDescription="@string/location_unset"
-                android:layout_marginBottom="12dp"
-                app:backgroundTint="@color/map_fab_stop"
-                app:icon="@drawable/ic_stop"
-                android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/getlocation"

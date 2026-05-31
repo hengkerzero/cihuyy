@@ -42,14 +42,6 @@
 
     <PreferenceCategory app:title="@string/xposed">
 
-        <SwitchPreferenceCompat
-            android:title="@string/advanced_hook"
-            android:summary="@string/advanced_summary"
-            android:key="system_hooked"
-            android:icon="@drawable/ic_advanced_hook"
-            android:widgetLayout="@layout/preference_switch_widget"
-        />
-
         <EditTextPreference
             android:defaultValue="10"
             android:digits="0123456789"

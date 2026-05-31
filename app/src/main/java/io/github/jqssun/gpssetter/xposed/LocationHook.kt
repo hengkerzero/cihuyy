@@ -28,6 +28,7 @@ object LocationHook {
     private var accuracy: Float = 0.0f
     private var mockSpeed: Float = 0.0f
     private var mockBearing: Float = 0.0f
+    private var mockAltitude: Double = 0.0
     private val rand: Random = Random()
     private const val earth = 6378137.0
     private val settings = Xshare()
@@ -50,6 +51,7 @@ object LocationHook {
             accuracy = settings.accuracy!!.toFloat()
             mockSpeed = settings.getSpeed
             mockBearing = settings.getBearing
+            mockAltitude = settings.getAltitude
 
         } catch (e: Exception) {
             Timber.tag("GPS Setter")
@@ -61,12 +63,21 @@ object LocationHook {
     fun initHooks(lpparam: XC_LoadPackage.LoadPackageParam) {
 
         if (lpparam.packageName == "android") { XposedBridge.log("Hooking system server")
-        if (settings.isStarted && (settings.isHookedSystem && !ignorePkg.contains(lpparam.packageName))) {
+        if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
             if (System.currentTimeMillis() - mLastUpdated > 200) {
                 updateLocation()
             }
 
-            if (Build.VERSION.SDK_INT < 34) {
+            // Pilih strategi hook: ikuti pilihan OS mode user, fallback ke deteksi SDK.
+            // legacy = Android 10-14 (com.android.server.LocationManagerService)
+            // modern = Android 15-16 (com.android.server.location.LocationManagerService)
+            val useLegacyHook = when (settings.androidOsMode) {
+                "legacy" -> true
+                "modern" -> false
+                else -> Build.VERSION.SDK_INT < 34
+            }
+
+            if (useLegacyHook) {
 
                 val LocationManagerServiceClass = XposedHelpers.findClass(
                     "com.android.server.LocationManagerService",
@@ -82,7 +93,7 @@ object LocationHook {
                             location.time = System.currentTimeMillis() - 300
                             location.latitude = newlat
                             location.longitude = newlng
-                            location.altitude = 0.0
+                            location.altitude = mockAltitude
                             location.speed = mockSpeed
                             location.bearing = mockBearing
                             location.accuracy = accuracy
@@ -135,7 +146,7 @@ object LocationHook {
 
                             location.latitude = newlat
                             location.longitude = newlng
-                            location.altitude = 0.0
+                            location.altitude = mockAltitude
                             location.speed = mockSpeed
                             location.bearing = mockBearing
                             location.speedAccuracyMetersPerSecond = 0F
@@ -167,7 +178,7 @@ object LocationHook {
                                     location.time = System.currentTimeMillis() - 300
                                     location.latitude = newlat
                                     location.longitude = newlng
-                                    location.altitude = 0.0
+                                    location.altitude = mockAltitude
                                     location.speed = mockSpeed
                                     location.bearing = mockBearing
                                     location.accuracy = accuracy
@@ -217,7 +228,7 @@ object LocationHook {
 
                             location.latitude = newlat
                             location.longitude = newlng
-                            location.altitude = 0.0
+                            location.altitude = mockAltitude
                             location.speed = mockSpeed
                             location.bearing = mockBearing
                             location.speedAccuracyMetersPerSecond = 0F
@@ -318,7 +329,7 @@ object LocationHook {
 
                             location.latitude = newlat
                             location.longitude = newlng
-                            location.altitude = 0.0
+                            location.altitude = mockAltitude
                             location.speed = mockSpeed
                             location.bearing = mockBearing
                             location.speedAccuracyMetersPerSecond = 0F
@@ -352,7 +363,7 @@ object LocationHook {
                             location.time = System.currentTimeMillis() - 300
                             location.latitude = newlat
                             location.longitude = newlng
-                            location.altitude = 0.0
+                            location.altitude = mockAltitude
                             location.speed = mockSpeed
                             location.bearing = mockBearing
                             location.speedAccuracyMetersPerSecond = 0F

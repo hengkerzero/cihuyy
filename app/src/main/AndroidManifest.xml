@@ -74,6 +74,10 @@
             android:exported="false" />
 
         <service
+            android:name=".utils.FloatingControlService"
+            android:exported="false" />
+
+        <service
             android:name=".utils.RouteWalkService"
             android:foregroundServiceType="location"
             android:exported="false" />

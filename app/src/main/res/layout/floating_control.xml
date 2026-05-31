@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Floating control overlay (muncul saat GPS aktif).
+  Pill vertikal gelap berisi 3 tombol dari atas ke bawah:
+   1. Logo app  -> drag handle + toggle collapse (sembunyikan tombol di bawahnya)
+   2. Refresh   -> re-apply lokasi mock (refresh hook)
+   3. Stop      -> matikan hook & tutup floating
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/floating_pill"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/floating_pill_bg"
+    android:padding="6dp"
+    android:gravity="center_horizontal">
+
+    <!-- Logo / drag handle / collapse toggle -->
+    <ImageView
+        android:id="@+id/floating_logo"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:padding="4dp"
+        android:background="@drawable/floating_btn_ripple"
+        android:src="@mipmap/ic_launcher"
+        android:scaleType="centerInside"
+        android:contentDescription="@string/floating_drag_desc" />
+
+    <!-- Tombol Refresh -->
+    <ImageButton
+        android:id="@+id/floating_refresh"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="6dp"
+        android:padding="10dp"
+        android:background="@drawable/floating_btn_ripple"
+        android:src="@drawable/ic_refresh"
+        app:tint="#4CD964"
+        android:scaleType="centerInside"
+        android:contentDescription="@string/floating_refresh_desc" />
+
+    <!-- Tombol Stop -->
+    <ImageButton
+        android:id="@+id/floating_stop"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="6dp"
+        android:padding="10dp"
+        android:background="@drawable/floating_btn_ripple"
+        android:src="@drawable/ic_stop"
+        app:tint="#4CD964"
+        android:scaleType="centerInside"
+        android:contentDescription="@string/floating_stop_desc" />
+
+</LinearLayout>

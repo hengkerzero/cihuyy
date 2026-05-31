@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.TextView
@@ -122,6 +123,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
         }
         setSupportActionBar(binding.toolbar)
         initializeMap()
+        applyWindowInsets()
         checkModuleEnabled()
         checkUpdates()
         setupNavView()
@@ -131,6 +133,40 @@ abstract class BaseMapActivity: AppCompatActivity() {
         if (PrefManager.isJoystickEnabled){
             startService(Intent(this, JoystickService::class.java))
         }
+    }
+
+    /**
+     * App ini digambar edge-to-edge (konten masuk ke area status bar & navigation bar).
+     * Tanpa penyesuaian, kontrol atas (toolbar + search) ketimpa status bar dan
+     * kontrol bawah (kolom FAB, toggle, panel walk) ketimpa navigation bar / gesture bar.
+     *
+     * Di sini kita baca system bar insets lalu:
+     * - dorong toolbar & search ke bawah status bar (padding/margin atas)
+     * - dorong kontrol bawah ke atas navigation bar (margin bawah)
+     */
+    private fun applyWindowInsets() {
+        val toolbarBaseTop = binding.toolbar.marginTop
+        val searchBaseTop = binding.search.root.marginTop
+        val barBasePaddingBottom = binding.bottomBar.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.container) { _, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+
+            binding.toolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = toolbarBaseTop + bars.top
+            }
+            binding.search.root.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = searchBaseTop + bars.top
+            }
+            // Bottom bar membentang di belakang navigation bar: tambahkan inset
+            // sebagai padding bawah supaya isi (tombol toggle) tetap di atas nav bar,
+            // sementara warna latar bar mengisi area di belakangnya.
+            binding.bottomBar.updatePadding(bottom = barBasePaddingBottom + bars.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.container)
     }
 
     private fun askNotificationPermission() {
@@ -180,11 +216,11 @@ abstract class BaseMapActivity: AppCompatActivity() {
 
     private fun setupNavView() {
 
-        binding.mapContainer.map.setOnApplyWindowInsetsListener { _, insets ->
-            val topInset: Int = insets.systemWindowInsetTop
-            val bottomInset: Int = insets.systemWindowInsetBottom
-            binding.navView.setPadding(0,topInset,0,0)
-            insets.consumeSystemWindowInsets()
+        // Beri padding atas pada drawer agar header tidak ketimpa status bar.
+        ViewCompat.setOnApplyWindowInsetsListener(binding.navView) { v, insets ->
+            val top = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top
+            v.setPadding(0, top, 0, 0)
+            insets
         }
 
         val progress = binding.search.searchProgress
@@ -272,6 +308,188 @@ abstract class BaseMapActivity: AppCompatActivity() {
         }.run {
             alertDialog.setView(this)
             alertDialog.show()
+        }
+    }
+
+    /**
+     * Dialog Pengaturan ringkas yang dibuka dari tombol gear di peta.
+     * Berisi: Floating Mode, Fused Mode, Random Location, selector Android OS,
+     * dan parameter manual (Accuracy/Altitude/Bearing/Speed) yang hanya tampil
+     * saat switch "Parameter Manual" diaktifkan.
+     */
+    protected fun openMapSettingsDialog() {
+        val view = layoutInflater.inflate(R.layout.dialog_map_settings, null)
+
+        val switchFloating = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_floating_mode)
+        val switchRandom = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_random_location)
+        val switchAutoOff = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_auto_off_order)
+        val osGroup = view.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.os_toggle_group)
+        val switchManual = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_manual_params)
+        val manualContainer = view.findViewById<View>(R.id.manual_params_container)
+
+        val sliderAccuracy = view.findViewById<com.google.android.material.slider.Slider>(R.id.slider_accuracy)
+        val sliderAltitude = view.findViewById<com.google.android.material.slider.Slider>(R.id.slider_altitude)
+        val sliderBearing = view.findViewById<com.google.android.material.slider.Slider>(R.id.slider_bearing)
+        val sliderSpeed = view.findViewById<com.google.android.material.slider.Slider>(R.id.slider_speed)
+        val valueAccuracy = view.findViewById<TextView>(R.id.value_accuracy)
+        val valueAltitude = view.findViewById<TextView>(R.id.value_altitude)
+        val valueBearing = view.findViewById<TextView>(R.id.value_bearing)
+        val valueSpeed = view.findViewById<TextView>(R.id.value_speed)
+
+        // --- Inisialisasi state dari PrefManager ---
+        switchFloating.isChecked = PrefManager.isJoystickEnabled
+        switchRandom.isChecked = PrefManager.isRandomPosition
+        switchAutoOff.isChecked = PrefManager.isAutoOffOnOrder
+
+        if (PrefManager.androidOsMode == PrefManager.OS_MODE_LEGACY) {
+            osGroup.check(R.id.btn_os_legacy)
+        } else {
+            osGroup.check(R.id.btn_os_modern)
+        }
+
+        // Helper update label
+        fun refreshLabels() {
+            valueAccuracy.text = "${sliderAccuracy.value.toInt()} m"
+            valueAltitude.text = "${sliderAltitude.value.toInt()} m"
+            valueBearing.text = "${sliderBearing.value.toInt()}\u00B0"
+            valueSpeed.text = "${sliderSpeed.value.toInt()} m/s"
+        }
+
+        // Nilai slider dari prefs (clamp ke rentang agar tidak crash)
+        fun Float.clampTo(slider: com.google.android.material.slider.Slider) =
+            coerceIn(slider.valueFrom, slider.valueTo)
+
+        sliderAccuracy.value = (PrefManager.accuracy?.toFloatOrNull() ?: 10f).clampTo(sliderAccuracy)
+        sliderAltitude.value = PrefManager.manualAltitude.clampTo(sliderAltitude)
+        sliderBearing.value = PrefManager.manualBearing.clampTo(sliderBearing)
+        sliderSpeed.value = PrefManager.manualSpeed.clampTo(sliderSpeed)
+        refreshLabels()
+
+        switchManual.isChecked = PrefManager.isManualParams
+        manualContainer.visibility = if (PrefManager.isManualParams) View.VISIBLE else View.GONE
+
+        // --- Listeners ---
+        switchFloating.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                if (ensureOverlayPermission()) {
+                    PrefManager.isJoystickEnabled = true
+                    startService(Intent(this, JoystickService::class.java))
+                    showToast("Floating Mode aktif")
+                } else {
+                    // izin belum ada, balikkan switch
+                    switchFloating.isChecked = false
+                }
+            } else {
+                PrefManager.isJoystickEnabled = false
+                stopService(Intent(this, JoystickService::class.java))
+                showToast("Floating Mode nonaktif")
+            }
+        }
+
+        switchRandom.setOnCheckedChangeListener { _, isChecked ->
+            PrefManager.isRandomPosition = isChecked
+            showToast(if (isChecked) "Random Location aktif" else "Random Location nonaktif")
+        }
+
+        switchAutoOff.setOnCheckedChangeListener { _, isChecked ->
+            PrefManager.isAutoOffOnOrder = isChecked
+            if (isChecked) {
+                if (!isNotificationListenerEnabled()) {
+                    showToast("Aktifkan izin Notification Access untuk fitur ini")
+                    requestNotificationListenerPermission()
+                } else {
+                    showToast("Auto-Off aktif: GPS mati otomatis saat dapat orderan")
+                }
+            } else {
+                showToast("Auto-Off dinonaktifkan")
+            }
+        }
+
+        osGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            PrefManager.androidOsMode = if (checkedId == R.id.btn_os_legacy) {
+                PrefManager.OS_MODE_LEGACY
+            } else {
+                PrefManager.OS_MODE_MODERN
+            }
+        }
+
+        switchManual.setOnCheckedChangeListener { _, isChecked ->
+            PrefManager.isManualParams = isChecked
+            manualContainer.visibility = if (isChecked) View.VISIBLE else View.GONE
+            if (!isChecked) {
+                // Kembali ke otomatis: reset speed/bearing agar teleport diam
+                applyManualParams(0f, 0f)
+            } else {
+                applyManualParams(sliderSpeed.value, sliderBearing.value)
+            }
+        }
+
+        sliderAccuracy.addOnChangeListener { _, value, _ ->
+            PrefManager.accuracy = value.toInt().toString()
+            valueAccuracy.text = "${value.toInt()} m"
+        }
+        sliderAltitude.addOnChangeListener { _, value, _ ->
+            PrefManager.manualAltitude = value
+            valueAltitude.text = "${value.toInt()} m"
+        }
+        sliderBearing.addOnChangeListener { _, value, _ ->
+            PrefManager.manualBearing = value
+            valueBearing.text = "${value.toInt()}\u00B0"
+            if (PrefManager.isManualParams) applyManualParams(sliderSpeed.value, value)
+        }
+        sliderSpeed.addOnChangeListener { _, value, _ ->
+            PrefManager.manualSpeed = value
+            valueSpeed.text = "${value.toInt()} m/s"
+            if (PrefManager.isManualParams) applyManualParams(value, sliderBearing.value)
+        }
+
+        alertDialog = MaterialAlertDialogBuilder(this)
+        alertDialog.setTitle(getString(R.string.map_settings_title))
+        alertDialog.setView(view)
+        alertDialog.setPositiveButton(getString(R.string.settings_close), null)
+        alertDialog.setNeutralButton(getString(R.string.open_full_settings)) { _, _ ->
+            startActivity(Intent(this, ActivitySettings::class.java))
+        }
+        dialog = alertDialog.create()
+        dialog.show()
+    }
+
+    /**
+     * Terapkan speed/bearing manual ke lokasi yang sedang aktif (jika GPS jalan),
+     * supaya perubahan slider langsung terasa tanpa harus stop/start.
+     */
+    private fun applyManualParams(speedMs: Float, bearingDeg: Float) {
+        if (PrefManager.isStarted) {
+            PrefManager.updateWithMotion(true, PrefManager.getLat, PrefManager.getLng, speedMs, bearingDeg)
+        }
+    }
+
+    /** Pastikan izin overlay sudah ada (untuk Floating Mode/joystick). */
+    private fun ensureOverlayPermission(): Boolean {
+        if (Settings.canDrawOverlays(this)) return true
+        showToast("Aktifkan izin tampilkan di atas aplikasi lain")
+        startActivity(
+            Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                android.net.Uri.parse("package:$packageName")
+            )
+        )
+        return false
+    }
+
+    /** Cek apakah izin Notification Access aktif (untuk Auto-Off Order). */
+    private fun isNotificationListenerEnabled(): Boolean {
+        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        return flat != null && flat.contains(packageName)
+    }
+
+    /** Buka layar pengaturan Notification Access. */
+    private fun requestNotificationListenerPermission() {
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } catch (e: Exception) {
+            showToast("Buka Settings > Apps > Notification Access secara manual")
         }
     }
 

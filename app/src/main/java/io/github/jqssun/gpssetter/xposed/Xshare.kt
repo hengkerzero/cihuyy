@@ -36,11 +36,8 @@ class Xshare {
     val getBearing : Float
     get() = pref().getFloat("mock_bearing", 0f)
 
-    val isHookedSystem : Boolean
-    get() = pref().getBoolean(
-        "system_hooked",
-        true
-    )
+    val getAltitude : Double
+    get() = pref().getString("mock_altitude", null)?.toDoubleOrNull() ?: 0.0
 
     val isRandomPosition :Boolean
     get() = pref().getBoolean(
@@ -50,6 +47,9 @@ class Xshare {
 
     val accuracy : String?
     get() = pref().getString("accuracy_level","10")
+
+    val androidOsMode : String
+    get() = pref().getString("android_os_mode", "modern") ?: "modern"
 
     val reload = pref().reload()
 

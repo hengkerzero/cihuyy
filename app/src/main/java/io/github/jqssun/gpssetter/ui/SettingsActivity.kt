@@ -40,7 +40,6 @@ class ActivitySettings : AppCompatActivity() {
     class SettingPreferenceDataStore() : PreferenceDataStore() {
         override fun getBoolean(key: String?, defValue: Boolean): Boolean {
             return when (key) {
-                "system_hooked" -> PrefManager.isSystemHooked
                 "random_position" -> PrefManager.isRandomPosition
                 "update_disabled" -> PrefManager.isUpdateDisabled
                 "joystick_enabled" -> PrefManager.isJoystickEnabled
@@ -50,7 +49,6 @@ class ActivitySettings : AppCompatActivity() {
 
         override fun putBoolean(key: String?, value: Boolean) {
             return when (key) {
-                "system_hooked" -> PrefManager.isSystemHooked = value
                 "random_position" -> PrefManager.isRandomPosition = value
                 "update_disabled" -> PrefManager.isUpdateDisabled = value
                 "joystick_enabled" -> PrefManager.isJoystickEnabled = value

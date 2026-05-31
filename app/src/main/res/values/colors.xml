@@ -14,4 +14,7 @@
     <color name="map_fab_start">#D92E7D32</color>
     <color name="map_fab_stop">#D9C62828</color>
 
+    <!-- Solid dark bottom bar that sits behind the navigation bar -->
+    <color name="map_bottom_bar">#FF2B303A</color>
+
 </resources>

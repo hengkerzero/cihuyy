@@ -26,6 +26,22 @@
     <string name="mode_normal">Normal</string>
     <string name="mode_walk">Walk</string>
 
+    <!-- Walk multi-point / loop -->
+    <string name="walk_loop">Loop</string>
+    <string name="walk_loop_desc">Kembali ke titik awal</string>
+    <string name="walk_undo">Undo</string>
+    <string name="walk_reset">Reset</string>
+    <string name="walk_build_route">Buat Rute</string>
+    <string name="walk_stat_distance">Jarak</string>
+    <string name="walk_stat_eta">Estimasi</string>
+    <string name="walk_stat_points">Titik</string>
+
+    <!-- Floating control overlay -->
+    <string name="floating_drag_desc">Geser / sembunyikan kontrol</string>
+    <string name="floating_refresh_desc">Refresh lokasi</string>
+    <string name="floating_stop_desc">Stop GPS</string>
+    <string name="floating_refreshed">Lokasi di-refresh</string>
+
     <!-- Errors -->
     <string name="error_xposed_module_missing">Xposed module is not enabled</string>
     <string name="error_xposed_module_missing_desc">Enable this module in LSPosed Manager</string>
@@ -67,5 +83,26 @@
     <string name="drawer_close">Close</string>
     <string name="app_update_failed">Update failed</string>
     <string name="dark_theme">Dark theme</string>
+
+    <!-- Map settings dialog -->
+    <string name="map_settings_title">Map Settings</string>
+    <string name="settings_features">Features</string>
+    <string name="floating_mode">Floating Mode</string>
+    <string name="floating_mode_summary">Joystick mengambang untuk geser lokasi</string>
+    <string name="random_location_btn">Random Location</string>
+    <string name="random_location_btn_summary">Acak posisi sedikit di sekitar titik</string>
+    <string name="auto_off_order">Auto-Off Order</string>
+    <string name="auto_off_order_summary">Matikan GPS palsu otomatis saat ada orderan masuk (ShopeeFood)</string>
+    <string name="os_compat_title">Android OS Compatibility</string>
+    <string name="os_android_10_14">Android 10 - 14</string>
+    <string name="os_android_15_16">Android 15 - 16</string>
+    <string name="manual_params_title">Parameter Manual</string>
+    <string name="manual_params_summary">Atur Accuracy, Altitude, Bearing &amp; Speed sendiri</string>
+    <string name="param_accuracy">Accuracy</string>
+    <string name="param_altitude">Altitude</string>
+    <string name="param_bearing">Bearing</string>
+    <string name="param_speed">Speed</string>
+    <string name="settings_close">Tutup</string>
+    <string name="open_full_settings">Pengaturan Lanjutan</string>
 
 </resources>

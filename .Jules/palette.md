@@ -1,0 +1,3 @@
+## 2024-05-18 - Tooltips for Icon-Only Buttons
+**Learning:** While `android:contentDescription` makes icon-only buttons accessible to screen readers, sighted users relying on mice, trackpads, or styluses lack context without hover tooltips. Standard views use `android:tooltipText`, but Material components (like `MaterialButton`) require `app:tooltipText` for backwards compatibility in this app (minSdk 27).
+**Action:** When creating or modifying icon-only buttons, always mirror the string resource used for `contentDescription` in the appropriate tooltip attribute (`app:tooltipText` or `android:tooltipText`) to ensure feature discoverability for all pointer input users.

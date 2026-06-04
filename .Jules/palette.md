@@ -1,0 +1,3 @@
+## 2026-06-04 - Adding Tooltips to Icon-Only Buttons
+**Learning:** This application uses standard Android XML layouts with Material Components. Icon-only `MaterialButton`s often have `android:contentDescription` set for screen readers, but lack visible tooltips for pointer users (like mouse or stylus). Since the app's `minSdk` is 27, `app:tooltipText` should be used on Material components instead of the standard `android:tooltipText` to ensure consistent backward compatibility.
+**Action:** Always mirror `android:contentDescription` to `app:tooltipText` on icon-only `MaterialButton`s to improve feature discoverability for all user types.

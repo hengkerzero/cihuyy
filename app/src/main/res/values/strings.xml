@@ -95,6 +95,7 @@
     <string name="auto_off_order_summary">Matikan GPS palsu otomatis saat ada orderan masuk (ShopeeFood)</string>
     <string name="os_compat_title">Android OS Compatibility</string>
     <string name="os_android_10_14">Android 10 - 14</string>
+    <string name="os_android_13">Android 13</string>
     <string name="os_android_15_16">Android 15 - 16</string>
     <string name="manual_params_title">Parameter Manual</string>
     <string name="manual_params_summary">Atur Accuracy, Altitude, Bearing &amp; Speed sendiri</string>

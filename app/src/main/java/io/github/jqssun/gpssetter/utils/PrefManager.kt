@@ -3,6 +3,7 @@ package io.github.jqssun.gpssetter.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import io.github.jqssun.gpssetter.BuildConfig
 import io.github.jqssun.gpssetter.gsApp
@@ -39,8 +40,9 @@ object PrefManager   {
     private const val ANDROID_OS_MODE = "android_os_mode"
 
     // Nilai mode kompatibilitas Android OS
-    const val OS_MODE_LEGACY = "legacy"   // Android 10 - 14
-    const val OS_MODE_MODERN = "modern"   // Android 15 - 16
+    const val OS_MODE_LEGACY = "legacy"   // Android 10 - 12
+    const val OS_MODE_ANDROID_13 = "android13"   // Android 13
+    const val OS_MODE_MODERN = "modern"   // Android 14+
 
 
     private val pref: SharedPreferences by lazy {
@@ -108,9 +110,16 @@ object PrefManager   {
         get() = pref.getFloat(MANUAL_ALTITUDE, 0f)
         set(value) { pref.edit().putFloat(MANUAL_ALTITUDE, value).apply() }
 
-    /** Mode kompatibilitas Android OS: OS_MODE_LEGACY (10-14) / OS_MODE_MODERN (15-16). */
+    /** Mode kompatibilitas Android OS: legacy (10-12), android13, modern (14+). */
     var androidOsMode: String
-        get() = pref.getString(ANDROID_OS_MODE, OS_MODE_MODERN) ?: OS_MODE_MODERN
+        get() {
+            val defaultMode = if (Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU) {
+                OS_MODE_ANDROID_13
+            } else {
+                OS_MODE_MODERN
+            }
+            return pref.getString(ANDROID_OS_MODE, defaultMode) ?: defaultMode
+        }
         set(value) { pref.edit().putString(ANDROID_OS_MODE, value).apply() }
 
     var mapType : Int

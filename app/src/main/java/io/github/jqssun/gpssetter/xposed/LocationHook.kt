@@ -9,6 +9,7 @@ import android.location.Location
 import android.location.LocationManager
 import android.location.LocationRequest
 import android.os.Build
+import android.os.SystemClock
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -38,15 +39,13 @@ object LocationHook {
     private var mLastUpdated: Long = 0
 
     // --- Random Location (natural GPS drift) ---
-    // Posisi acak dibuat seperti drift GPS asli saat diam: bergerak pelan dan
-    // halus dalam radius kecil, bukan loncat ke titik acak baru tiap update.
-    private const val JITTER_RADIUS = 3.0          // radius maksimum drift (meter)
-    private const val JITTER_SPEED = 0.3           // kecepatan drift (meter/detik)
-    private const val JITTER_TARGET_INTERVAL = 3000L // pilih target baru tiap 3 detik
-    private var curOffN: Double = 0.0              // offset saat ini ke utara (meter)
-    private var curOffE: Double = 0.0              // offset saat ini ke timur (meter)
-    private var tgtOffN: Double = 0.0              // target offset utara (meter)
-    private var tgtOffE: Double = 0.0              // target offset timur (meter)
+    private const val JITTER_RADIUS = 3.0
+    private const val JITTER_SPEED = 0.3
+    private const val JITTER_TARGET_INTERVAL = 3000L
+    private var curOffN: Double = 0.0
+    private var curOffE: Double = 0.0
+    private var tgtOffN: Double = 0.0
+    private var tgtOffE: Double = 0.0
     private var lastJitterTarget: Long = 0
     private var lastJitterCalc: Long = 0
 
@@ -60,7 +59,6 @@ object LocationHook {
             mLastUpdated = now
 
             if (settings.isRandomPosition) {
-                // Pilih target acak baru di dalam radius secara berkala.
                 if (now - lastJitterTarget > JITTER_TARGET_INTERVAL) {
                     lastJitterTarget = now
                     val angle = rand.nextDouble() * 2.0 * pi
@@ -69,8 +67,6 @@ object LocationHook {
                     tgtOffE = r * sin(angle)
                 }
 
-                // Geser offset saat ini menuju target dengan kecepatan terbatas
-                // (berbasis waktu, jadi tetap halus walau frekuensi update berubah).
                 val dt = (now - lastJitterCalc).coerceIn(0L, 1000L) / 1000.0
                 lastJitterCalc = now
                 val step = JITTER_SPEED * dt
@@ -121,6 +117,7 @@ object LocationHook {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         val location = Location(LocationManager.GPS_PROVIDER)
                         location.time = System.currentTimeMillis() - 300
+                        location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() - 300_000_000L
                         location.latitude = newlat
                         location.longitude = newlng
                         location.altitude = mockAltitude
@@ -163,14 +160,15 @@ object LocationHook {
                         if (param.args[0] == null) {
                             location = Location(LocationManager.GPS_PROVIDER)
                             location.time = System.currentTimeMillis() - 300
+                            location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() - 300_000_000L
                         } else {
                             originLocation = param.args[0] as Location
                             location = Location(originLocation.provider)
                             location.time = originLocation.time
+                            location.elapsedRealtimeNanos = originLocation.elapsedRealtimeNanos
                             location.accuracy = accuracy
                             location.bearing = originLocation.bearing
                             location.bearingAccuracyDegrees = originLocation.bearingAccuracyDegrees
-                            location.elapsedRealtimeNanos = originLocation.elapsedRealtimeNanos
                             location.verticalAccuracyMeters = originLocation.verticalAccuracyMeters
                         }
 
@@ -214,6 +212,7 @@ object LocationHook {
                             override fun beforeHookedMethod(param: MethodHookParam) {
                                 val location = Location(LocationManager.GPS_PROVIDER)
                                 location.time = System.currentTimeMillis() - 300
+                                location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() - 300_000_000L
                                 location.latitude = newlat
                                 location.longitude = newlng
                                 location.altitude = mockAltitude
@@ -254,14 +253,15 @@ object LocationHook {
                         if (param.args[0] == null) {
                             location = Location(LocationManager.GPS_PROVIDER)
                             location.time = System.currentTimeMillis() - 300
+                            location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() - 300_000_000L
                         } else {
                             originLocation = param.args[0] as Location
                             location = Location(originLocation.provider)
                             location.time = originLocation.time
+                            location.elapsedRealtimeNanos = originLocation.elapsedRealtimeNanos
                             location.accuracy = accuracy
                             location.bearing = originLocation.bearing
                             location.bearingAccuracyDegrees = originLocation.bearingAccuracyDegrees
-                            location.elapsedRealtimeNanos = originLocation.elapsedRealtimeNanos
                             location.verticalAccuracyMeters = originLocation.verticalAccuracyMeters
                         }
 
@@ -295,9 +295,12 @@ object LocationHook {
         hookLegacySystemServer(lpparam)
     }
 
+    // elapsedRealtimeNanos wajib di-set supaya GMS tidak anggap lokasi "stale"
+    // dan tidak snap balik ke lokasi asli.
     private fun fakeLocation(provider: String = LocationManager.GPS_PROVIDER): Location {
         return Location(provider).apply {
             time = System.currentTimeMillis() - 300
+            elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() - 300_000_000L
             latitude = newlat
             longitude = newlng
             altitude = mockAltitude
@@ -313,49 +316,83 @@ object LocationHook {
     }
 
     private fun hookFusedLocationApis(lpparam: XC_LoadPackage.LoadPackageParam) {
+        // --- Hook LocationResult langsung (jalur paling reliable untuk live updates) ---
+        // Ini di-hook tanpa tergantung FusedLocationProviderClient berhasil di-load,
+        // sehingga callback onLocationResult() selalu dapat lokasi palsu.
+        runCatching {
+            val locationResultClass = XposedHelpers.findClass(
+                "com.google.android.gms.location.LocationResult",
+                lpparam.classLoader
+            )
+
+            // getLocations() — dipakai oleh sebagian besar app modern
+            for (method in locationResultClass.declaredMethods) {
+                if (method.name == "getLocations" && List::class.java.isAssignableFrom(method.returnType)) {
+                    XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                        override fun afterHookedMethod(param: MethodHookParam) {
+                            @Suppress("UNCHECKED_CAST")
+                            val list = (param.result as? MutableList<Location>) ?: return
+                            list.replaceAll { fakeLocation(it.provider ?: LocationManager.GPS_PROVIDER) }
+                            param.result = list
+                        }
+                    })
+                }
+            }
+
+            // getLastLocation() pada LocationResult
+            runCatching {
+                XposedHelpers.findAndHookMethod(
+                    locationResultClass,
+                    "getLastLocation",
+                    object : XC_MethodHook() {
+                        override fun beforeHookedMethod(param: MethodHookParam) {
+                            param.result = fakeLocation()
+                        }
+                    }
+                )
+            }.onFailure { XposedBridge.log("GS: LocationResult.getLastLocation hook failed: $it") }
+
+            XposedBridge.log("GS: LocationResult hooks installed OK")
+        }.onFailure { XposedBridge.log("GS: LocationResult hook failed (class not found?): $it") }
+
+        // --- Hook FusedLocationProviderClient ---
         runCatching {
             val fusedClass = XposedHelpers.findClass(
                 "com.google.android.gms.location.FusedLocationProviderClient",
                 lpparam.classLoader
             )
+            XposedBridge.log("GS: FusedLocationProviderClient found, installing hooks")
 
             for (method in fusedClass.declaredMethods) {
                 when (method.name) {
                     "getLastLocation", "getCurrentLocation" -> {
-                        XposedBridge.hookMethod(
-                            method,
-                            object : XC_MethodHook() {
-                                override fun beforeHookedMethod(param: MethodHookParam) {
-                                    runCatching {
-                                        val tasksClass = XposedHelpers.findClass(
-                                            "com.google.android.gms.tasks.Tasks",
-                                            lpparam.classLoader
-                                        )
-                                        val fake = fakeLocation()
-                                        val forResult = XposedHelpers.findMethodBestMatch(
-                                            tasksClass,
-                                            "forResult",
-                                            Any::class.java
-                                        )
-                                        param.result = forResult.invoke(null, fake)
-                                    }.onFailure { e ->
-                                        XposedBridge.log("GS: fused ${method.name} hook failed: $e")
-                                    }
+                        XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                            override fun beforeHookedMethod(param: MethodHookParam) {
+                                runCatching {
+                                    val tasksClass = XposedHelpers.findClass(
+                                        "com.google.android.gms.tasks.Tasks",
+                                        lpparam.classLoader
+                                    )
+                                    val forResult = XposedHelpers.findMethodBestMatch(
+                                        tasksClass, "forResult", Any::class.java
+                                    )
+                                    param.result = forResult.invoke(null, fakeLocation())
+                                }.onFailure { e ->
+                                    XposedBridge.log("GS: fused ${method.name} hook failed: $e")
                                 }
                             }
-                        )
+                        })
                     }
 
                     "requestLocationUpdates" -> {
-                        XposedBridge.hookMethod(
-                            method,
-                            object : XC_MethodHook() {
-                                override fun beforeHookedMethod(param: MethodHookParam) {
-                                    val locationCallbackIndex = method.parameterTypes.indexOfFirst {
-                                        it.name.contains("LocationCallback")
-                                    }
-                                    if (locationCallbackIndex >= 0 && locationCallbackIndex < param.args.size) {
-                                        val callback = param.args[locationCallbackIndex]
+                        XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                            override fun beforeHookedMethod(param: MethodHookParam) {
+                                val callbackIndex = method.parameterTypes.indexOfFirst {
+                                    it.name.contains("LocationCallback")
+                                }
+                                if (callbackIndex >= 0 && callbackIndex < param.args.size) {
+                                    val callback = param.args[callbackIndex] ?: return
+                                    runCatching {
                                         XposedHelpers.findAndHookMethod(
                                             callback.javaClass,
                                             "onLocationResult",
@@ -364,66 +401,56 @@ object LocationHook {
                                                 lpparam.classLoader
                                             ),
                                             object : XC_MethodHook() {
-                                                override fun beforeHookedMethod(callbackParam: MethodHookParam) {
-                                                    callbackParam.args[0] = XposedHelpers.callStaticMethod(
-                                                        XposedHelpers.findClass(
-                                                            "com.google.android.gms.location.LocationResult",
-                                                            lpparam.classLoader
-                                                        ),
+                                                override fun beforeHookedMethod(cp: MethodHookParam) {
+                                                    val locationResultClass = XposedHelpers.findClass(
+                                                        "com.google.android.gms.location.LocationResult",
+                                                        lpparam.classLoader
+                                                    )
+                                                    cp.args[0] = XposedHelpers.callStaticMethod(
+                                                        locationResultClass,
                                                         "create",
                                                         listOf(fakeLocation())
                                                     )
                                                 }
                                             }
                                         )
+                                    }.onFailure { e ->
+                                        XposedBridge.log("GS: callback hook failed: $e")
                                     }
                                 }
                             }
-                        )
+                        })
                     }
                 }
             }
 
-            XposedHelpers.findAndHookMethod(
-                fusedClass,
-                "getLastLocation",
-                object : XC_MethodHook() {
-                    override fun beforeHookedMethod(param: MethodHookParam) {
-                        runCatching {
-                            val tasksClass = XposedHelpers.findClass(
-                                "com.google.android.gms.tasks.Tasks",
-                                lpparam.classLoader
-                            )
-                            val fakeLocation = fakeLocation()
-                            val forResult = XposedHelpers.findMethodBestMatch(
-                                tasksClass,
-                                "forResult",
-                                Any::class.java
-                            )
-                            param.result = forResult.invoke(null, fakeLocation)
-                        }.onFailure { e ->
-                            XposedBridge.log("GS: fused getLastLocation hook failed: $e")
-                        }
-                    }
-                }
-            )
-
-            runCatching {
-                Unit
-            }
-
+            // Fallback: hook getLastLocation() tanpa parameter (overload lain)
             runCatching {
                 XposedHelpers.findAndHookMethod(
-                    "com.google.android.gms.location.LocationResult",
-                    lpparam.classLoader,
+                    fusedClass,
                     "getLastLocation",
                     object : XC_MethodHook() {
                         override fun beforeHookedMethod(param: MethodHookParam) {
-                            param.result = fakeLocation()
+                            runCatching {
+                                val tasksClass = XposedHelpers.findClass(
+                                    "com.google.android.gms.tasks.Tasks",
+                                    lpparam.classLoader
+                                )
+                                val forResult = XposedHelpers.findMethodBestMatch(
+                                    tasksClass, "forResult", Any::class.java
+                                )
+                                param.result = forResult.invoke(null, fakeLocation())
+                            }.onFailure { e ->
+                                XposedBridge.log("GS: fused getLastLocation (no-arg) hook failed: $e")
+                            }
                         }
                     }
                 )
             }
+
+            XposedBridge.log("GS: FusedLocationProviderClient hooks installed OK")
+        }.onFailure { e ->
+            XposedBridge.log("GS: FusedLocationProviderClient hook failed: $e")
         }
     }
 
@@ -454,49 +481,46 @@ object LocationHook {
             for (method in locationManagerClass.declaredMethods) {
                 when (method.name) {
                     "getLastKnownLocation" -> {
-                        XposedBridge.hookMethod(
-                            method,
-                            object : XC_MethodHook() {
-                                override fun beforeHookedMethod(param: MethodHookParam) {
-                                    param.result = fakeLocation(param.args.firstOrNull()?.toString() ?: LocationManager.GPS_PROVIDER)
-                                }
+                        XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                            override fun beforeHookedMethod(param: MethodHookParam) {
+                                if (!settings.isStarted || ignorePkg.contains(lpparam.packageName)) return
+                                updateLocation()
+                                param.result = fakeLocation(
+                                    param.args.firstOrNull()?.toString() ?: LocationManager.GPS_PROVIDER
+                                )
                             }
-                        )
+                        })
                     }
 
                     "getCurrentLocation" -> {
-                        XposedBridge.hookMethod(
-                            method,
-                            object : XC_MethodHook() {
-                                override fun beforeHookedMethod(param: MethodHookParam) {
-                                    val consumerIndex = method.parameterTypes.indexOfFirst {
-                                        it.name.contains("Consumer")
-                                    }
-                                    if (consumerIndex >= 0 && consumerIndex < param.args.size) {
-                                        runCatching {
-                                            XposedHelpers.callMethod(param.args[consumerIndex], "accept", fakeLocation())
-                                        }
-                                    }
-                                    param.result = null
+                        XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                            override fun beforeHookedMethod(param: MethodHookParam) {
+                                if (!settings.isStarted || ignorePkg.contains(lpparam.packageName)) return
+                                updateLocation()
+                                val consumerIndex = method.parameterTypes.indexOfFirst {
+                                    it.name.contains("Consumer")
                                 }
+                                if (consumerIndex >= 0 && consumerIndex < param.args.size) {
+                                    runCatching {
+                                        XposedHelpers.callMethod(param.args[consumerIndex], "accept", fakeLocation())
+                                    }
+                                }
+                                param.result = null
                             }
-                        )
+                        })
                     }
 
                     "requestLocationUpdates", "requestSingleUpdate" -> {
-                        XposedBridge.hookMethod(
-                            method,
-                            object : XC_MethodHook() {
-                                override fun beforeHookedMethod(param: MethodHookParam) {
-                                    val listenerIndex = method.parameterTypes.indexOfFirst {
-                                        it.name.contains("LocationListener")
-                                    }
-                                    if (listenerIndex >= 0 && listenerIndex < param.args.size) {
-                                        hookLocationListenerObject(param.args[listenerIndex], lpparam.classLoader)
-                                    }
+                        XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                            override fun beforeHookedMethod(param: MethodHookParam) {
+                                val listenerIndex = method.parameterTypes.indexOfFirst {
+                                    it.name.contains("LocationListener")
+                                }
+                                if (listenerIndex >= 0 && listenerIndex < param.args.size) {
+                                    hookLocationListenerObject(param.args[listenerIndex], lpparam.classLoader)
                                 }
                             }
-                        )
+                        })
                     }
                 }
             }
@@ -508,23 +532,24 @@ object LocationHook {
     @SuppressLint("NewApi")
     fun initHooks(lpparam: XC_LoadPackage.LoadPackageParam) {
 
-        if (lpparam.packageName == "android") { XposedBridge.log("Hooking system server")
-        if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
-            if (System.currentTimeMillis() - mLastUpdated > 200) {
-                updateLocation()
-            }
+        if (lpparam.packageName == "android") {
+            XposedBridge.log("GS: Hooking system server")
+            if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                if (System.currentTimeMillis() - mLastUpdated > 200) {
+                    updateLocation()
+                }
 
-            when (settings.androidOsMode) {
-                PrefManager.OS_MODE_LEGACY -> hookLegacySystemServer(lpparam)
-                PrefManager.OS_MODE_ANDROID_13 -> hookAndroid13Compatibility(lpparam)
-                PrefManager.OS_MODE_MODERN -> hookModernSystemServer(lpparam)
-                else -> if (Build.VERSION.SDK_INT < 34) {
-                    hookAndroid13Compatibility(lpparam)
-                } else {
-                    hookModernSystemServer(lpparam)
+                when (settings.androidOsMode) {
+                    PrefManager.OS_MODE_LEGACY -> hookLegacySystemServer(lpparam)
+                    PrefManager.OS_MODE_ANDROID_13 -> hookAndroid13Compatibility(lpparam)
+                    PrefManager.OS_MODE_MODERN -> hookModernSystemServer(lpparam)
+                    else -> if (Build.VERSION.SDK_INT < 34) {
+                        hookAndroid13Compatibility(lpparam)
+                    } else {
+                        hookModernSystemServer(lpparam)
+                    }
                 }
             }
-        }
         } else { // application hook
 
             val LocationClass = XposedHelpers.findClass(
@@ -535,47 +560,32 @@ object LocationHook {
 
             for (method in LocationClass.declaredMethods) {
                 if (method.name == "getLatitude") {
-                    XposedBridge.hookMethod(
-                        method,
-                        object : XC_MethodHook() {
-                            override fun beforeHookedMethod(param: MethodHookParam) {
-                                if (System.currentTimeMillis() - mLastUpdated > interval) {
-                                    updateLocation()
-                                }
-                                if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
-                                    param.result = newlat
-                                }
+                    XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                        override fun beforeHookedMethod(param: MethodHookParam) {
+                            if (System.currentTimeMillis() - mLastUpdated > interval) updateLocation()
+                            if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                                param.result = newlat
                             }
                         }
-                    )
+                    })
                 } else if (method.name == "getLongitude") {
-                    XposedBridge.hookMethod(
-                        method,
-                        object : XC_MethodHook() {
-                            override fun beforeHookedMethod(param: MethodHookParam) {
-                                if (System.currentTimeMillis() - mLastUpdated > interval) {
-                                    updateLocation()
-                                }
-                                if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
-                                    param.result = newlng
-                                }
+                    XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                        override fun beforeHookedMethod(param: MethodHookParam) {
+                            if (System.currentTimeMillis() - mLastUpdated > interval) updateLocation()
+                            if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                                param.result = newlng
                             }
                         }
-                    )
+                    })
                 } else if (method.name == "getAccuracy") {
-                    XposedBridge.hookMethod(
-                        method,
-                        object : XC_MethodHook() {
-                            override fun beforeHookedMethod(param: MethodHookParam) {
-                                if (System.currentTimeMillis() - mLastUpdated > interval) {
-                                    updateLocation()
-                                }
-                                if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
-                                    param.result = accuracy
-                                }
+                    XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                        override fun beforeHookedMethod(param: MethodHookParam) {
+                            if (System.currentTimeMillis() - mLastUpdated > interval) updateLocation()
+                            if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                                param.result = accuracy
                             }
                         }
-                    )
+                    })
                 }
             }
 
@@ -585,24 +595,22 @@ object LocationHook {
                 Location::class.java,
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
-
-                        if (System.currentTimeMillis() - mLastUpdated > interval) {
-                            updateLocation()
-                        }
+                        if (System.currentTimeMillis() - mLastUpdated > interval) updateLocation()
                         if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
                             lateinit var location: Location
                             lateinit var originLocation: Location
                             if (param.args[0] == null) {
                                 location = Location(LocationManager.GPS_PROVIDER)
                                 location.time = System.currentTimeMillis() - 300
+                                location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() - 300_000_000L
                             } else {
                                 originLocation = param.args[0] as Location
                                 location = Location(originLocation.provider)
                                 location.time = originLocation.time
+                                location.elapsedRealtimeNanos = originLocation.elapsedRealtimeNanos
                                 location.accuracy = accuracy
                                 location.bearing = originLocation.bearing
                                 location.bearingAccuracyDegrees = originLocation.bearingAccuracyDegrees
-                                location.elapsedRealtimeNanos = originLocation.elapsedRealtimeNanos
                                 location.verticalAccuracyMeters = originLocation.verticalAccuracyMeters
                             }
 
@@ -633,13 +641,12 @@ object LocationHook {
                 String::class.java,
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
-                        if (System.currentTimeMillis() - mLastUpdated > interval) {
-                            updateLocation()
-                        }
+                        if (System.currentTimeMillis() - mLastUpdated > interval) updateLocation()
                         if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
                             val provider = param.args[0] as String
                             val location = Location(provider)
                             location.time = System.currentTimeMillis() - 300
+                            location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() - 300_000_000L
                             location.latitude = newlat
                             location.longitude = newlng
                             location.altitude = mockAltitude

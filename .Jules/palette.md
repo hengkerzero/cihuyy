@@ -1,0 +1,3 @@
+## 2024-06-07 - Add tooltips to icon-only buttons
+**Learning:** In Android UI using Material Components with traditional XML layouts, screen readers use `android:contentDescription` to announce buttons. However, visually this doesn't help users who are using mice or stylus devices, or long-pressing on touch displays to discover what an icon-only button does.
+**Action:** When creating icon-only buttons, always mirror the string resource from `android:contentDescription` into `android:tooltipText`. `app:tooltipText` is mostly only effective for MenuItems, so for general View instances (like MaterialButton or ImageView), use `android:tooltipText`.

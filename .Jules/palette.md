@@ -1,0 +1,4 @@
+
+## 2024-05-20 - Tooltips for icon-only buttons in standard Android Views
+**Learning:** For Android applications using traditional XML layouts (non-Compose), the `app:tooltipText` attribute is only valid and processed for `MenuItem` components in menu resources. For standard views, including Material Design components like `MaterialButton` and even basic `ImageView` elements, `android:tooltipText` must be used instead. Using `app:tooltipText` on these standard views will fail to display any tooltip. Mirroring the `android:contentDescription` string resource for the `android:tooltipText` attribute is a reliable pattern to improve the discoverability of icon-only interactive elements.
+**Action:** When adding tooltips to standard views (buttons, image views, etc.) in Android XML layouts, always use `android:tooltipText`. Ensure the value mirrors the existing `android:contentDescription` to maintain consistency between visual tooltips and screen reader announcements.

@@ -1,0 +1,3 @@
+## 2025-02-18 - Added Tooltips to Icon-Only Buttons
+**Learning:** In Android layouts using Material components, `android:tooltipText` should be used instead of `app:tooltipText` on standard views like `MaterialButton` to ensure proper rendering and accessibility, especially when components only have icons. This directly enhances discoverability by showing tooltips on long-press or mouse-hover, complementing screen reader `android:contentDescription`.
+**Action:** Always add `android:tooltipText` alongside `android:contentDescription` on all icon-only buttons across the project to provide explicit meaning for all users, not just screen reader users.

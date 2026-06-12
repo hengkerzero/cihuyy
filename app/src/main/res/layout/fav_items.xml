@@ -1,34 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal"
-    android:paddingStart="20dp"
-    android:paddingTop="5dp"
-    android:paddingBottom="5dp"
-    android:layout_weight="2"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:layout_marginStart="12dp"
+    android:layout_marginEnd="12dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/rounded_card_background">
 
-
-    <TextView
-        android:textAppearance="@style/TextAppearance.AppCompat.Widget.TextView.SpinnerItem"
-        android:id="@+id/address"
+    <!-- Tappable area: icon + address. Selecting the row triggers onItemClick. -->
+    <LinearLayout
+        android:id="@+id/item_content"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_weight="1"
-        android:text="@string/address"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:clickable="true"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:background="@drawable/fav_item_ripple"
+        android:clickable="true"
+        android:focusable="true">
 
+        <ImageView
+            android:id="@+id/item_icon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_location_pin"
+            android:contentDescription="@null"
+            android:tint="@color/primary" />
+
+        <TextView
+            android:id="@+id/address"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:textColor="#DE000000"
+            android:textSize="15sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:text="@string/address" />
+
+    </LinearLayout>
+
+    <!-- Separate delete control with its own contained ripple. -->
     <ImageView
         android:id="@+id/del"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginEnd="6dp"
+        android:padding="10dp"
         android:src="@drawable/ic_delete"
-        android:layout_marginEnd="@dimen/padding_16"
+        android:tint="#99000000"
         android:contentDescription="@string/delete_favorite_item"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:clickable="true"/>
+        android:clickable="true"
+        android:focusable="true" />
 
 </LinearLayout>

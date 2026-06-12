@@ -341,10 +341,10 @@ abstract class BaseMapActivity: AppCompatActivity() {
         switchRandom.isChecked = PrefManager.isRandomPosition
         switchAutoOff.isChecked = PrefManager.isAutoOffOnOrder
 
-        if (PrefManager.androidOsMode == PrefManager.OS_MODE_LEGACY) {
-            osGroup.check(R.id.btn_os_legacy)
-        } else {
-            osGroup.check(R.id.btn_os_modern)
+        when (PrefManager.androidOsMode) {
+            PrefManager.OS_MODE_LEGACY -> osGroup.check(R.id.btn_os_legacy)
+            PrefManager.OS_MODE_ANDROID_13 -> osGroup.check(R.id.btn_os_android_13)
+            else -> osGroup.check(R.id.btn_os_modern)
         }
 
         // Helper update label
@@ -407,10 +407,10 @@ abstract class BaseMapActivity: AppCompatActivity() {
 
         osGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
-            PrefManager.androidOsMode = if (checkedId == R.id.btn_os_legacy) {
-                PrefManager.OS_MODE_LEGACY
-            } else {
-                PrefManager.OS_MODE_MODERN
+            PrefManager.androidOsMode = when (checkedId) {
+                R.id.btn_os_legacy -> PrefManager.OS_MODE_LEGACY
+                R.id.btn_os_android_13 -> PrefManager.OS_MODE_ANDROID_13
+                else -> PrefManager.OS_MODE_MODERN
             }
         }
 

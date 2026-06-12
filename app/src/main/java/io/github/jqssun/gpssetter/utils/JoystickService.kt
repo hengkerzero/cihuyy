@@ -7,91 +7,94 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.IBinder
 import android.view.*
-import io.github.controlwear.virtual.joystick.android.JoystickView
+import android.widget.ImageButton
 import io.github.jqssun.gpssetter.R
-import kotlin.math.cos
-import kotlin.math.sin
 
-class JoystickService : Service(),View.OnTouchListener,View.OnClickListener {
+/**
+ * FloatingService (dahulu JoystickService) — menampilkan overlay dua tombol:
+ *  • Stop  : kirim broadcast StopGpsReceiver agar GPS berhenti
+ *  • Refresh: update lokasi ke koordinat terkini di PrefManager
+ *
+ * Floating hanya ditampilkan ketika GPS sudah di-start (PrefManager.isStarted == true).
+ * Kalau GPS belum start, overlay tidak di-add ke WindowManager sehingga tidak kelihatan.
+ */
+class JoystickService : Service() {
 
     private var wm: WindowManager? = null
-    private var mJoystickContainerView: View? = null
-    private var mJoystickView: JoystickView? = null
-    private var mJoystickLayoutParams: WindowManager.LayoutParams? = null
-    private var lat : Double = PrefManager.getLat
-    private var lon : Double = PrefManager.getLng
+    private var floatingView: View? = null
+    private var layoutParams: WindowManager.LayoutParams? = null
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate() {
         super.onCreate()
-        wm =  getSystemService(WINDOW_SERVICE) as WindowManager
-        val mInflater :LayoutInflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        mJoystickContainerView = mInflater.inflate(R.layout.joystick, null as ViewGroup?) as View
-        mJoystickView = mJoystickContainerView!!.findViewById(R.id.joystickView_right)
-        mJoystickView?.setOnTouchListener { v, event ->
-            if (event.action == 1){
-                try {
-                    lat = PrefManager.getLat
-                    lon = PrefManager.getLng
-                    updateLocation(lat, lon)
-                } catch (e: Exception) {
-                    e.printStackTrace()
+
+        // Hanya tampilkan floating kalau GPS sudah aktif
+        if (!PrefManager.isStarted) return
+
+        wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        floatingView = inflater.inflate(R.layout.floating_controls, null as ViewGroup?)
+
+        // --- Tombol Stop ---
+        floatingView!!.findViewById<ImageButton>(R.id.btn_floating_stop).setOnClickListener {
+            // Kirim broadcast ke StopGpsReceiver (sama seperti tombol Stop di notifikasi)
+            sendBroadcast(Intent(this, StopGpsReceiver::class.java).apply {
+                action = StopGpsReceiver.ACTION_STOP_GPS
+            })
+        }
+
+        // --- Tombol Refresh ---
+        floatingView!!.findViewById<ImageButton>(R.id.btn_floating_refresh).setOnClickListener {
+            // Re-apply koordinat terkini dari PrefManager agar lokasi di-refresh
+            PrefManager.update(
+                start = PrefManager.isStarted,
+                la    = PrefManager.getLat,
+                ln    = PrefManager.getLng
+            )
+        }
+
+        // --- Draggable agar bisa dipindah ---
+        var initialX = 0; var initialY = 0
+        var initialTouchX = 0f; var initialTouchY = 0f
+
+        floatingView!!.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = layoutParams!!.x; initialY = layoutParams!!.y
+                    initialTouchX = event.rawX;  initialTouchY = event.rawY
+                    true
                 }
-
-            }
-            false
-        }
-        // mJoystickView?.setOnMoveListener { angle, strength ->
-        mJoystickView?.setOnMoveListener { angle, strength, event ->
-            val radians = Math.toRadians(angle.toDouble())
-            try {
-                val factorX: Double = cos(radians) / 100000.0 * (strength / 30)
-                val factorY: Double = sin(radians) / 100000.0 * (strength / 30)
-                lon = PrefManager.getLng + factorX
-                lat = PrefManager.getLat + factorY
-                updateLocation(lat, lon)
-
-            }catch (e : Exception){
-                e.printStackTrace()
+                MotionEvent.ACTION_MOVE -> {
+                    layoutParams!!.x = initialX + (event.rawX - initialTouchX).toInt()
+                    layoutParams!!.y = initialY + (event.rawY - initialTouchY).toInt()
+                    wm!!.updateViewLayout(floatingView, layoutParams)
+                    true
+                }
+                else -> false
             }
         }
-        mJoystickLayoutParams = WindowManager.LayoutParams(
+
+        layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
-        )
-        mJoystickLayoutParams?.let {
-            it.gravity = Gravity.LEFT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = 0; y = 200
         }
 
-        wm!!.addView(mJoystickContainerView,mJoystickLayoutParams)
+        wm!!.addView(floatingView, layoutParams)
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
-
-    override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override fun onClick(v: View?) {
-        TODO("Not yet implemented")
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
         super.onDestroy()
-        if (this.mJoystickContainerView != null) {
-            this.wm!!.removeView(mJoystickContainerView);
-            this.mJoystickContainerView = null;
+        floatingView?.let {
+            wm?.removeView(it)
+            floatingView = null
         }
     }
-
-    private fun updateLocation(lat : Double,lon : Double){
-        PrefManager.update(start = PrefManager.isStarted, la = lat, ln = lon)
-
-    }
-
 }

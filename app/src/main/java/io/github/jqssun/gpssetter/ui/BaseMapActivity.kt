@@ -312,7 +312,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
 
     /**
      * Dialog Pengaturan ringkas yang dibuka dari tombol gear di peta.
-     * Berisi: Floating Mode, Fused Mode, Random Location, selector Android OS,
+     * Berisi: Floating Mode, Random Location, Auto-Off Order,
      * dan parameter manual (Accuracy/Altitude/Bearing/Speed) yang hanya tampil
      * saat switch "Parameter Manual" diaktifkan.
      *
@@ -325,7 +325,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
         val switchFloating = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_floating_mode)
         val switchRandom = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_random_location)
         val switchAutoOff = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_auto_off_order)
-        val osGroup = view.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.os_toggle_group)
         val switchManual = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_manual_params)
         val manualContainer = view.findViewById<View>(R.id.manual_params_container)
 
@@ -339,16 +338,9 @@ abstract class BaseMapActivity: AppCompatActivity() {
         val valueSpeed = view.findViewById<TextView>(R.id.value_speed)
 
         // --- Inisialisasi state dari PrefManager ---
-        // Floating Mode pakai isFloatingEnabled (terpisah dari isJoystickEnabled/joystick)
         switchFloating.isChecked = PrefManager.isFloatingEnabled
         switchRandom.isChecked = PrefManager.isRandomPosition
         switchAutoOff.isChecked = PrefManager.isAutoOffOnOrder
-
-        when (PrefManager.androidOsMode) {
-            PrefManager.OS_MODE_LEGACY -> osGroup.check(R.id.btn_os_legacy)
-            PrefManager.OS_MODE_ANDROID_13 -> osGroup.check(R.id.btn_os_android_13)
-            else -> osGroup.check(R.id.btn_os_modern)
-        }
 
         // Helper update label
         fun refreshLabels() {
@@ -373,9 +365,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
 
         // --- Listeners ---
 
-        // Floating Mode: simpan preferensi. FloatingControlService akan otomatis
-        // ditampilkan oleh onStop() di MapActivity hanya kalau GPS Normal aktif.
-        // Kalau dimatikan, stop service kalau sedang jalan.
         switchFloating.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 if (ensureOverlayPermission()) {
@@ -411,15 +400,6 @@ abstract class BaseMapActivity: AppCompatActivity() {
                 }
             } else {
                 showToast("Auto-Off dinonaktifkan")
-            }
-        }
-
-        osGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (!isChecked) return@addOnButtonCheckedListener
-            PrefManager.androidOsMode = when (checkedId) {
-                R.id.btn_os_legacy -> PrefManager.OS_MODE_LEGACY
-                R.id.btn_os_android_13 -> PrefManager.OS_MODE_ANDROID_13
-                else -> PrefManager.OS_MODE_MODERN
             }
         }
 

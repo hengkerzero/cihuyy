@@ -539,15 +539,12 @@ object LocationHook {
                     updateLocation()
                 }
 
-                when (settings.androidOsMode) {
-                    PrefManager.OS_MODE_LEGACY -> hookLegacySystemServer(lpparam)
-                    PrefManager.OS_MODE_ANDROID_13 -> hookAndroid13Compatibility(lpparam)
-                    PrefManager.OS_MODE_MODERN -> hookModernSystemServer(lpparam)
-                    else -> if (Build.VERSION.SDK_INT < 34) {
-                        hookAndroid13Compatibility(lpparam)
-                    } else {
-                        hookModernSystemServer(lpparam)
-                    }
+                // Single codepath: pilih hook berdasarkan SDK saja,
+                // tanpa opsi mode OS di UI.
+                if (Build.VERSION.SDK_INT < 34) {
+                    hookAndroid13Compatibility(lpparam)
+                } else {
+                    hookModernSystemServer(lpparam)
                 }
             }
         } else { // application hook

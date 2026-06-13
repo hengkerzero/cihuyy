@@ -48,7 +48,7 @@ import io.github.jqssun.gpssetter.R
 import io.github.jqssun.gpssetter.adapter.FavListAdapter
 import io.github.jqssun.gpssetter.databinding.ActivityMapBinding
 import io.github.jqssun.gpssetter.ui.viewmodel.MainViewModel
-import io.github.jqssun.gpssetter.utils.JoystickService
+import io.github.jqssun.gpssetter.utils.FloatingControlService
 import io.github.jqssun.gpssetter.utils.NotificationsChannel
 import io.github.jqssun.gpssetter.utils.PrefManager
 import io.github.jqssun.gpssetter.utils.StopGpsReceiver
@@ -130,9 +130,8 @@ abstract class BaseMapActivity: AppCompatActivity() {
         setupButtons()
         setupDrawer()
         askNotificationPermission()
-        if (PrefManager.isJoystickEnabled){
-            startService(Intent(this, JoystickService::class.java))
-        }
+        // Floating control ditampilkan otomatis via onStop/onStart di MapActivity
+        // (hanya muncul kalau GPS Normal sudah Start). Tidak perlu auto-start di sini.
     }
 
     /**
@@ -316,6 +315,9 @@ abstract class BaseMapActivity: AppCompatActivity() {
      * Berisi: Floating Mode, Fused Mode, Random Location, selector Android OS,
      * dan parameter manual (Accuracy/Altitude/Bearing/Speed) yang hanya tampil
      * saat switch "Parameter Manual" diaktifkan.
+     *
+     * Floating Mode: mengaktifkan FloatingControlService (Stop + Refresh) yang
+     * otomatis muncul saat app masuk background & GPS Normal sedang aktif.
      */
     protected fun openMapSettingsDialog() {
         val view = layoutInflater.inflate(R.layout.dialog_map_settings, null)
@@ -337,7 +339,8 @@ abstract class BaseMapActivity: AppCompatActivity() {
         val valueSpeed = view.findViewById<TextView>(R.id.value_speed)
 
         // --- Inisialisasi state dari PrefManager ---
-        switchFloating.isChecked = PrefManager.isJoystickEnabled
+        // Floating Mode pakai isFloatingEnabled (terpisah dari isJoystickEnabled/joystick)
+        switchFloating.isChecked = PrefManager.isFloatingEnabled
         switchRandom.isChecked = PrefManager.isRandomPosition
         switchAutoOff.isChecked = PrefManager.isAutoOffOnOrder
 
@@ -369,19 +372,25 @@ abstract class BaseMapActivity: AppCompatActivity() {
         manualContainer.visibility = if (PrefManager.isManualParams) View.VISIBLE else View.GONE
 
         // --- Listeners ---
+
+        // Floating Mode: simpan preferensi. FloatingControlService akan otomatis
+        // ditampilkan oleh onStop() di MapActivity hanya kalau GPS Normal aktif.
+        // Kalau dimatikan, stop service kalau sedang jalan.
         switchFloating.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 if (ensureOverlayPermission()) {
-                    PrefManager.isJoystickEnabled = true
-                    startService(Intent(this, JoystickService::class.java))
-                    showToast("Floating Mode aktif")
+                    PrefManager.isFloatingEnabled = true
+                    showToast("Floating Mode aktif — muncul saat GPS On & app di background")
                 } else {
                     // izin belum ada, balikkan switch
                     switchFloating.isChecked = false
                 }
             } else {
-                PrefManager.isJoystickEnabled = false
-                stopService(Intent(this, JoystickService::class.java))
+                PrefManager.isFloatingEnabled = false
+                // Matikan floating kalau sedang tampil
+                try {
+                    stopService(Intent(this, FloatingControlService::class.java))
+                } catch (_: Exception) {}
                 showToast("Floating Mode nonaktif")
             }
         }
@@ -465,7 +474,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
         }
     }
 
-    /** Pastikan izin overlay sudah ada (untuk Floating Mode/joystick). */
+    /** Pastikan izin overlay sudah ada (untuk Floating Mode). */
     private fun ensureOverlayPermission(): Boolean {
         if (Settings.canDrawOverlays(this)) return true
         showToast("Aktifkan izin tampilkan di atas aplikasi lain")

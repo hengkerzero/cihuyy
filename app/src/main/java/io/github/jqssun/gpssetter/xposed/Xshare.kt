@@ -1,5 +1,4 @@
 package io.github.jqssun.gpssetter.xposed
-import android.os.Build
 import de.robv.android.xposed.XSharedPreferences
 import io.github.jqssun.gpssetter.BuildConfig
 
@@ -23,7 +22,6 @@ class Xshare {
         p.getString("latitude_hp", null)?.toDoubleOrNull()
             ?: p.getFloat("latitude", 45.0000000.toFloat()).toDouble()
     }
-
 
     val getLng : Double
     get() = pref().let { p ->
@@ -49,16 +47,5 @@ class Xshare {
     val accuracy : String?
     get() = pref().getString("accuracy_level","10")
 
-    val androidOsMode : String
-    get() {
-        val defaultMode = if (Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU) {
-            "android13"
-        } else {
-            "modern"
-        }
-        return pref().getString("android_os_mode", defaultMode) ?: defaultMode
-    }
-
     val reload = pref().reload()
-
 }

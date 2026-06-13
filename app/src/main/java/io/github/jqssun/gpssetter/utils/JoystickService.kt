@@ -33,10 +33,10 @@ class JoystickService : Service() {
 
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        floatingView = inflater.inflate(R.layout.floating_controls, null as ViewGroup?)
+        floatingView = inflater.inflate(R.layout.floating_control, null as ViewGroup?)
 
         // --- Tombol Stop ---
-        floatingView!!.findViewById<ImageButton>(R.id.btn_floating_stop).setOnClickListener {
+        floatingView!!.findViewById<ImageButton>(R.id.floating_stop).setOnClickListener {
             // Kirim broadcast ke StopGpsReceiver (sama seperti tombol Stop di notifikasi)
             sendBroadcast(Intent(this, StopGpsReceiver::class.java).apply {
                 action = StopGpsReceiver.ACTION_STOP_GPS
@@ -44,7 +44,7 @@ class JoystickService : Service() {
         }
 
         // --- Tombol Refresh ---
-        floatingView!!.findViewById<ImageButton>(R.id.btn_floating_refresh).setOnClickListener {
+        floatingView!!.findViewById<ImageButton>(R.id.floating_refresh).setOnClickListener {
             // Re-apply koordinat terkini dari PrefManager agar lokasi di-refresh
             PrefManager.update(
                 start = PrefManager.isStarted,

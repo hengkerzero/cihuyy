@@ -31,7 +31,7 @@ import io.github.jqssun.gpssetter.utils.JoystickService
 import io.github.jqssun.gpssetter.utils.PrefManager
 import io.github.jqssun.gpssetter.utils.ext.showToast
 
-class ActivitySettings : AppCompatActivity() {
+class SettingsActivity : AppCompatActivity() {
 
     private val binding by lazy {
         ActivitySettingsBinding.inflate(layoutInflater)

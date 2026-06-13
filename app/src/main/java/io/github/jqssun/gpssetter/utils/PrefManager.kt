@@ -31,6 +31,7 @@ object PrefManager   {
     private const val DARK_THEME = "dark_theme"
     private const val DISABLE_UPDATE = "update_disabled"
     private const val ENABLE_JOYSTICK = "joystick_enabled"
+    private const val ENABLE_FLOATING = "floating_enabled"
     private const val AUTO_OFF_ON_ORDER = "auto_off_on_order"
     private const val MANUAL_PARAMS = "manual_params_enabled"
     private const val MANUAL_SPEED = "manual_speed"
@@ -128,6 +129,10 @@ object PrefManager   {
     var isJoystickEnabled: Boolean
         get() = pref.getBoolean(ENABLE_JOYSTICK, false)
         set(value) = pref.edit().putBoolean(ENABLE_JOYSTICK, value).apply()
+
+    var isFloatingEnabled: Boolean
+        get() = pref.getBoolean(ENABLE_FLOATING, false)
+        set(value) = pref.edit().putBoolean(ENABLE_FLOATING, value).apply()
 
     var isAutoOffOnOrder: Boolean
         get() = pref.getBoolean(AUTO_OFF_ON_ORDER, false)

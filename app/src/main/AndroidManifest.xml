@@ -24,7 +24,7 @@
         android:theme="@style/Theme.GPSSetter"
         tools:targetApi="34">
         <activity
-            android:name=".ui.ActivitySettings"
+            android:name=".ui.SettingsActivity"
             android:exported="false"
             android:label="@string/title_activity_settings"
             android:launchMode="singleTop">

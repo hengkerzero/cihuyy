@@ -1,39 +1,39 @@
 <resources>
 
     <!-- Home -->
-    <string name="app_name">GPS Setter</string>
-    <string name="xposed_desc">A GPS setter based on the Xposed framework.</string>
-    <string name="search">Search</string>
-    <string name="address">United States</string>
-    <string name="favorites">Favorites</string>
-    <string name="address_not_found">Address not found</string>
-    <string name="cant_save">Can\'t save</string>
-    <string name="location_set">Location set</string>
-    <string name="title">Location set notification</string>
-    <string name="des">Show notification when location is set</string>
-    <string name="location_unset">Location unset</string>
-    <string name="no_internet">No Internet</string>
-    <string name="getlocation_desc">My location</string>
-    <string name="addfavorite_desc">Add favorite</string>
-    <string name="delete_marker_desc">Delete marker</string>
-    <string name="refresh_maps_desc">Refresh maps</string>
-    <string name="favorites_list_desc">Favorite list</string>
-    <string name="settings_desc">Settings</string>
-    <string name="mode_toggle_desc">Toggle Normal / Walk mode</string>
+    <string name="app_name">GPS CIHUYY</string>
+    <string name="xposed_desc">Modul GPS spoofing berbasis framework Xposed.</string>
+    <string name="search">Cari</string>
+    <string name="address">Indonesia</string>
+    <string name="favorites">Favorit</string>
+    <string name="address_not_found">Alamat tidak ditemukan</string>
+    <string name="cant_save">Gagal menyimpan</string>
+    <string name="location_set">Lokasi aktif</string>
+    <string name="title">Notifikasi GPS Aktif</string>
+    <string name="des">Tampilkan notifikasi saat GPS palsu sedang berjalan</string>
+    <string name="location_unset">GPS dinonaktifkan</string>
+    <string name="no_internet">Tidak ada koneksi internet</string>
+    <string name="getlocation_desc">Lokasi saya</string>
+    <string name="addfavorite_desc">Tambah favorit</string>
+    <string name="delete_marker_desc">Hapus marker</string>
+    <string name="refresh_maps_desc">Muat ulang peta</string>
+    <string name="favorites_list_desc">Daftar favorit</string>
+    <string name="settings_desc">Pengaturan</string>
+    <string name="mode_toggle_desc">Ganti mode Normal / Walk</string>
     <string name="marker_removed">Marker dihapus</string>
-    <string name="no_marker_to_remove">Tidak ada marker</string>
-    <string name="maps_refreshed">Maps di-refresh</string>
+    <string name="no_marker_to_remove">Tidak ada marker untuk dihapus</string>
+    <string name="maps_refreshed">Peta di-refresh</string>
     <string name="mode_normal">Normal</string>
     <string name="mode_walk">Walk</string>
 
     <!-- Walk multi-point / loop -->
-    <string name="walk_loop">Loop</string>
-    <string name="walk_loop_desc">Kembali ke titik awal</string>
-    <string name="walk_undo">Undo</string>
+    <string name="walk_loop">Looping</string>
+    <string name="walk_loop_desc">Kembali ke titik awal secara otomatis</string>
+    <string name="walk_undo">Urungkan</string>
     <string name="walk_reset">Reset</string>
     <string name="walk_build_route">Buat Rute</string>
     <string name="walk_stat_distance">Jarak</string>
-    <string name="walk_stat_eta">Estimasi</string>
+    <string name="walk_stat_eta">Waktu</string>
     <string name="walk_stat_points">Titik</string>
 
     <!-- Floating control overlay -->
@@ -43,65 +43,65 @@
     <string name="floating_refreshed">Lokasi di-refresh</string>
 
     <!-- Errors -->
-    <string name="error_xposed_module_missing">Xposed module is not enabled</string>
-    <string name="error_xposed_module_missing_desc">Enable this module in LSPosed Manager</string>
+    <string name="error_xposed_module_missing">Modul Xposed belum aktif</string>
+    <string name="error_xposed_module_missing_desc">Silakan aktifkan modul ini di manajer LSPosed / EdXposed</string>
 
     <!-- About -->
-    <string name="about">About</string>
-    <string name="about_info">Brought to you by \n@jqssun (2024-2025) \n@Android1500 (2022-2023) \n\nA GPS setter based on the Xposed framework.</string>
+    <string name="about">Tentang</string>
+    <string name="about_info">Dikembangkan oleh \n@jqssun (2024-2025) \n@Android1500 (2022-2023) \n\nAplikasi GPS spoofing berbasis framework Xposed.</string>
 
     <!-- Update -->
-    <string name="download_manager_description">Downloading update</string>
-    <string name="update_button">Update</string>
-    <string name="update_available">Update available</string>
-    <string name="bs_update_download_failed">Failed</string>
+    <string name="download_manager_description">Sedang mengunduh pembaruan</string>
+    <string name="update_button">Perbarui</string>
+    <string name="update_available">Pembaruan tersedia</string>
+    <string name="bs_update_download_failed">Unduhan gagal</string>
 
 
     <!-- Dialog -->
-    <string name="add_fav_dialog_title">Add favorite</string>
-    <string name="dialog_button_add">Add</string>
-    <string name="location_not_select">Location not selected</string>
-    <string name="save">Save</string>
+    <string name="add_fav_dialog_title">Tambah Favorit</string>
+    <string name="dialog_button_add">Simpan</string>
+    <string name="location_not_select">Lokasi belum dipilih</string>
+    <string name="save">Tersimpan</string>
 
     <!-- SettingActivity -->
     <string name="xposed">Xposed</string>
-    <string name="settings">Settings</string>
-    <string name="settings_of_accuracy">Accuracy</string>
-    <string name="preference_category_general">General</string>
-    <string name="enter_valid_input">Enter a valid number</string>
-    <string name="delete_favorite_item">Delete favorite</string>
-    <string name="title_activity_settings">Settings</string>
-    <string name="check_update">Check for updates</string>
-    <string name="check_update_summary">Automatically check the latest version from GitHub</string>
-    <string name="enable_joystick">Use joystick</string>
-    <string name="enable_joystick_summary">Control your location with a joystick (experimental)</string>
-    <string name="advanced_hook">Hook system location</string>
-    <string name="advanced_summary">Hook system for better location setting (reboot required)</string>
-    <string name="random_position">Random location</string>
-    <string name="random_position_summary">Use a random location around the set location</string>
-    <string name="drawer_open">Open</string>
-    <string name="drawer_close">Close</string>
-    <string name="app_update_failed">Update failed</string>
-    <string name="dark_theme">Dark theme</string>
+    <string name="settings">Pengaturan</string>
+    <string name="settings_of_accuracy">Akurasi</string>
+    <string name="preference_category_general">Umum</string>
+    <string name="enter_valid_input">Masukkan angka yang valid</string>
+    <string name="delete_favorite_item">Hapus favorit</string>
+    <string name="title_activity_settings">Pengaturan</string>
+    <string name="check_update">Cek pembaruan</string>
+    <string name="check_update_summary">Cek versi terbaru dari GitHub secara otomatis</string>
+    <string name="enable_joystick">Gunakan Joystick</string>
+    <string name="enable_joystick_summary">Kontrol lokasi dengan joystick (eksperimental)</string>
+    <string name="advanced_hook">Hook lokasi sistem</string>
+    <string name="advanced_summary">Metode hook lebih dalam (butuh restart)</string>
+    <string name="random_position">Acak Lokasi</string>
+    <string name="random_position_summary">Gunakan posisi acak di sekitar titik lokasi</string>
+    <string name="drawer_open">Buka</string>
+    <string name="drawer_close">Tutup</string>
+    <string name="app_update_failed">Pembaruan gagal</string>
+    <string name="dark_theme">Tema gelap</string>
 
     <!-- Map settings dialog -->
-    <string name="map_settings_title">Map Settings</string>
-    <string name="settings_features">Features</string>
-    <string name="floating_mode">Floating Mode</string>
-    <string name="floating_mode_summary">Joystick mengambang untuk geser lokasi</string>
-    <string name="random_location_btn">Random Location</string>
+    <string name="map_settings_title">Pengaturan Peta</string>
+    <string name="settings_features">Fitur</string>
+    <string name="floating_mode">Mode Mengambang</string>
+    <string name="floating_mode_summary">Tampilkan kontrol cepat (Refresh/Stop) saat aplikasi di latar belakang</string>
+    <string name="random_location_btn">Lokasi Acak</string>
     <string name="random_location_btn_summary">Acak posisi sedikit di sekitar titik</string>
-    <string name="auto_off_order">Auto-Off Order</string>
-    <string name="auto_off_order_summary">Matikan GPS palsu otomatis saat ada orderan masuk (ShopeeFood)</string>
-    <string name="os_compat_title">Android OS Compatibility</string>
+    <string name="auto_off_order">Otomatis Off</string>
+    <string name="auto_off_order_summary">Matikan GPS otomatis saat ada orderan masuk (ShopeeFood)</string>
+    <string name="os_compat_title">Kompatibilitas Android OS</string>
     <string name="os_android_10_14">Android 10 - 14</string>
     <string name="os_android_15_16">Android 15 - 16</string>
     <string name="manual_params_title">Parameter Manual</string>
-    <string name="manual_params_summary">Atur Accuracy, Altitude, Bearing &amp; Speed sendiri</string>
-    <string name="param_accuracy">Accuracy</string>
-    <string name="param_altitude">Altitude</string>
+    <string name="manual_params_summary">Atur Akurasi, Ketinggian, Bearing &amp; Kecepatan sendiri</string>
+    <string name="param_accuracy">Akurasi</string>
+    <string name="param_altitude">Ketinggian</string>
     <string name="param_bearing">Bearing</string>
-    <string name="param_speed">Speed</string>
+    <string name="param_speed">Kecepatan</string>
     <string name="settings_close">Tutup</string>
     <string name="open_full_settings">Pengaturan Lanjutan</string>
 

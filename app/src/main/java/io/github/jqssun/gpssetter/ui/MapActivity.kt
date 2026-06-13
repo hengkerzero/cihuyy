@@ -1003,8 +1003,9 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
     /** Mulai spoofing GPS di mode Normal. */
     private fun startNormalGps() {
         viewModel.update(true, lat, lon)
-        mLatLng?.let { updateMarker(it) }
+        // Paksa update UI setelah state diubah di PrefManager
         updateCenterAction()
+        mLatLng?.let { updateMarker(it) }
         lifecycleScope.launch {
             mLatLng?.getAddress(getActivityInstance())?.let { address ->
                 address.collect { value -> showStartNotification(value) }
@@ -1015,9 +1016,10 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
 
     /** Matikan spoofing GPS di mode Normal. */
     private fun stopNormalGps() {
-        mLatLng?.let { viewModel.update(false, it.latitude, it.longitude) }
-        removeMarker()
+        viewModel.update(false, lat, lon)
+        // Paksa update UI setelah state diubah di PrefManager
         updateCenterAction()
+        removeMarker()
         cancelNotification()
         hideFloatingControl()
         showToast(getString(R.string.location_unset))

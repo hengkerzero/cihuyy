@@ -48,7 +48,6 @@ import io.github.jqssun.gpssetter.R
 import io.github.jqssun.gpssetter.adapter.FavListAdapter
 import io.github.jqssun.gpssetter.databinding.ActivityMapBinding
 import io.github.jqssun.gpssetter.ui.viewmodel.MainViewModel
-import io.github.jqssun.gpssetter.utils.JoystickService
 import io.github.jqssun.gpssetter.utils.NotificationsChannel
 import io.github.jqssun.gpssetter.utils.PrefManager
 import io.github.jqssun.gpssetter.utils.StopGpsReceiver
@@ -130,9 +129,9 @@ abstract class BaseMapActivity: AppCompatActivity() {
         setupButtons()
         setupDrawer()
         askNotificationPermission()
-        if (PrefManager.isJoystickEnabled){
-            startService(Intent(this, JoystickService::class.java))
-        }
+        // NOTE: JoystickService is intentionally NOT auto-started here.
+        // Joystick has its own dedicated toggle inside SettingsActivity.
+        // FloatingControlService lifecycle is managed in MapActivity.onStop()/onStart().
     }
 
     /**
@@ -265,7 +264,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
                     openFavoriteListDialog()
                 }
                 R.id.settings -> {
-                    startActivity(Intent(this,ActivitySettings::class.java))
+                    startActivity(Intent(this,SettingsActivity::class.java))
                 }
                 R.id.about -> {
                     aboutDialog()
@@ -337,7 +336,10 @@ abstract class BaseMapActivity: AppCompatActivity() {
         val valueSpeed = view.findViewById<TextView>(R.id.value_speed)
 
         // --- Inisialisasi state dari PrefManager ---
-        switchFloating.isChecked = PrefManager.isJoystickEnabled
+        // FIX: switch Floating Mode mengontrol preferensi apakah floating overlay
+        // muncul saat app di-background (bukan JoystickService).
+        // FloatingControlService lifecycle dikelola di MapActivity.onStop()/onStart().
+        switchFloating.isChecked = PrefManager.isFloatingEnabled
         switchRandom.isChecked = PrefManager.isRandomPosition
         switchAutoOff.isChecked = PrefManager.isAutoOffOnOrder
 
@@ -369,19 +371,21 @@ abstract class BaseMapActivity: AppCompatActivity() {
         manualContainer.visibility = if (PrefManager.isManualParams) View.VISIBLE else View.GONE
 
         // --- Listeners ---
+
+        // FIX: Floating Mode hanya menyimpan preferensi.
+        // FloatingControlService akan muncul/sembunyi secara otomatis di
+        // MapActivity.onStop() / onStart() berdasarkan nilai isFloatingEnabled ini.
         switchFloating.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 if (ensureOverlayPermission()) {
-                    PrefManager.isJoystickEnabled = true
-                    startService(Intent(this, JoystickService::class.java))
+                    PrefManager.isFloatingEnabled = true
                     showToast("Floating Mode aktif")
                 } else {
-                    // izin belum ada, balikkan switch
+                    // Izin belum ada, kembalikan switch
                     switchFloating.isChecked = false
                 }
             } else {
-                PrefManager.isJoystickEnabled = false
-                stopService(Intent(this, JoystickService::class.java))
+                PrefManager.isFloatingEnabled = false
                 showToast("Floating Mode nonaktif")
             }
         }
@@ -449,7 +453,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
         alertDialog.setView(view)
         alertDialog.setPositiveButton(getString(R.string.settings_close), null)
         alertDialog.setNeutralButton(getString(R.string.open_full_settings)) { _, _ ->
-            startActivity(Intent(this, ActivitySettings::class.java))
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
         dialog = alertDialog.create()
         dialog.show()
@@ -465,7 +469,7 @@ abstract class BaseMapActivity: AppCompatActivity() {
         }
     }
 
-    /** Pastikan izin overlay sudah ada (untuk Floating Mode/joystick). */
+    /** Pastikan izin overlay sudah ada (untuk Floating Mode). */
     private fun ensureOverlayPermission(): Boolean {
         if (Settings.canDrawOverlays(this)) return true
         showToast("Aktifkan izin tampilkan di atas aplikasi lain")

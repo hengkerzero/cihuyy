@@ -32,6 +32,7 @@ object PrefManager   {
     private const val DARK_THEME = "dark_theme"
     private const val DISABLE_UPDATE = "update_disabled"
     private const val ENABLE_JOYSTICK = "joystick_enabled"
+    private const val ENABLE_FLOATING = "floating_enabled"
     private const val AUTO_OFF_ON_ORDER = "auto_off_on_order"
     private const val MANUAL_PARAMS = "manual_params_enabled"
     private const val MANUAL_SPEED = "manual_speed"
@@ -134,9 +135,18 @@ object PrefManager   {
         get() = pref.getBoolean(DISABLE_UPDATE, false)
         set(value) = pref.edit().putBoolean(DISABLE_UPDATE, value).apply()
 
+    /** Joystick virtual (service terpisah dari floating control). */
     var isJoystickEnabled: Boolean
         get() = pref.getBoolean(ENABLE_JOYSTICK, false)
         set(value) = pref.edit().putBoolean(ENABLE_JOYSTICK, value).apply()
+
+    /**
+     * Floating Control (tombol Stop + Refresh).
+     * Muncul otomatis saat app masuk background & GPS Normal sudah Start.
+     */
+    var isFloatingEnabled: Boolean
+        get() = pref.getBoolean(ENABLE_FLOATING, false)
+        set(value) = pref.edit().putBoolean(ENABLE_FLOATING, value).apply()
 
     var isAutoOffOnOrder: Boolean
         get() = pref.getBoolean(AUTO_OFF_ON_ORDER, false)

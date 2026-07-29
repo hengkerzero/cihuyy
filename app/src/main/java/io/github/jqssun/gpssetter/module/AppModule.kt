@@ -4,11 +4,14 @@ import android.app.Application
 import android.app.DownloadManager
 import android.content.Context
 import androidx.room.Room
+import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.jqssun.gpssetter.module.util.ApplicationScope
+import io.github.jqssun.gpssetter.repository.ScopeConfigRepository
+import io.github.jqssun.gpssetter.repository.TemplateRepository
 import io.github.jqssun.gpssetter.room.AppDatabase
 import io.github.jqssun.gpssetter.room.FavoriteDao
 import io.github.jqssun.gpssetter.update.GitHubService
@@ -22,6 +25,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule{
+
+    @Singleton
+    @Provides
+    fun provideGson(): Gson = Gson()
 
     @Singleton
     @Provides
@@ -61,6 +68,20 @@ object AppModule{
     @Provides
     fun provideSettingRepo() : PrefManager =
         PrefManager
+
+    @Singleton
+    @Provides
+    fun provideTemplateRepository(application: Application, gson: Gson): TemplateRepository =
+        TemplateRepository(application.applicationContext, gson)
+
+    @Singleton
+    @Provides
+    fun provideScopeConfigRepository(
+        application: Application,
+        templateRepository: TemplateRepository,
+        gson: Gson
+    ): ScopeConfigRepository =
+        ScopeConfigRepository(application.applicationContext, templateRepository, gson)
 
     @ApplicationScope
     @Provides

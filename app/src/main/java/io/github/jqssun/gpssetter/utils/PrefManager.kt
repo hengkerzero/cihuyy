@@ -38,6 +38,8 @@ object PrefManager   {
     private const val MANUAL_BEARING = "manual_bearing"
     private const val MANUAL_ALTITUDE = "manual_altitude"
     private const val ANDROID_OS_MODE = "android_os_mode"
+    private const val SCOPE_CONFIG_JSON = "scope_config_json"
+    private const val TEMPLATES_JSON = "templates_json"
 
     // Nilai mode kompatibilitas Android OS
     const val OS_MODE_LEGACY = "legacy"   // Android 10 - 14
@@ -137,6 +139,16 @@ object PrefManager   {
     var isAutoOffOnOrder: Boolean
         get() = pref.getBoolean(AUTO_OFF_ON_ORDER, false)
         set(value) = pref.edit().putBoolean(AUTO_OFF_ON_ORDER, value).apply()
+
+    /** Scope config JSON synced for Xposed hook access via XSharedPreferences. */
+    var scopeConfigJson: String?
+        get() = pref.getString(SCOPE_CONFIG_JSON, null)
+        set(value) { pref.edit().putString(SCOPE_CONFIG_JSON, value).apply() }
+
+    /** Templates JSON synced for Xposed hook access via XSharedPreferences. */
+    var templatesJson: String?
+        get() = pref.getString(TEMPLATES_JSON, null)
+        set(value) { pref.edit().putString(TEMPLATES_JSON, value).apply() }
 
     fun update(start: Boolean, la: Double, ln: Double) {
         // Teleport biasa = diam di tempat (speed & bearing = 0),

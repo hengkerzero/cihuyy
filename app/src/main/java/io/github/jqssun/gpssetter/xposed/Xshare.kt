@@ -51,6 +51,13 @@ class Xshare {
     val androidOsMode : String
     get() = pref().getString("android_os_mode", "modern") ?: "modern"
 
-    val reload = pref().reload()
+    /** Raw JSON of ScopeConfig, synced from app's ScopeConfigRepository. */
+    val scopeConfigJson: String?
+    get() = pref().getString("scope_config_json", null)
 
+    /** Raw JSON of location templates list, synced from app's TemplateRepository. */
+    val templatesJson: String?
+    get() = pref().getString("templates_json", null)
+
+    val reload = pref().reload()
 }

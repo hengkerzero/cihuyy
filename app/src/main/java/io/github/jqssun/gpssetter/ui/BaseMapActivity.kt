@@ -263,6 +263,12 @@ abstract class BaseMapActivity: AppCompatActivity() {
                 R.id.get_favorite -> {
                     openFavoriteListDialog()
                 }
+                R.id.nav_scope -> {
+                    startActivity(Intent(this, ScopeActivity::class.java))
+                }
+                R.id.nav_templates -> {
+                    startActivity(Intent(this, TemplateActivity::class.java))
+                }
                 R.id.settings -> {
                     startActivity(Intent(this,SettingsActivity::class.java))
                 }

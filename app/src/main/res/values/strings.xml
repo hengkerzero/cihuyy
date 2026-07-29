@@ -105,4 +105,58 @@
     <string name="settings_close">Tutup</string>
     <string name="open_full_settings">Pengaturan Lanjutan</string>
 
+    <!-- Scope (Per-App Config) -->
+    <string name="scope_title">Scope Aplikasi</string>
+    <string name="scope_add_app">Tambah aplikasi</string>
+    <string name="scope_empty">Belum ada aplikasi di-scope</string>
+    <string name="scope_empty_desc">Tap + untuk menambahkan aplikasi target</string>
+    <string name="scope_app_icon_desc">Ikon aplikasi</string>
+    <string name="scope_search_apps">Cari aplikasi…</string>
+    <string name="scope_add_selected">Tambahkan</string>
+    <string name="scope_detail_title">Detail Scope</string>
+    <string name="scope_location_source">Sumber Lokasi</string>
+    <string name="scope_use_template">Gunakan Template</string>
+    <string name="scope_use_manual">Koordinat Manual</string>
+    <string name="scope_select_template">Pilih template lokasi</string>
+    <string name="scope_template_hint">Pilih template…</string>
+    <string name="scope_delete_app">Hapus dari Scope</string>
+    <string name="scope_saved">Scope disimpan</string>
+    <string name="scope_deleted">Dihapus dari scope</string>
+    <string name="scope_no_template">Belum ada template</string>
+    <string name="scope_location_manual">Manual: %1$.4f, %2$.4f</string>
+    <string name="scope_location_template">Template: %1$s</string>
+    <string name="scope_location_none">Belum dikonfigurasi</string>
+
+    <!-- Template System -->
+    <string name="template_title">Template</string>
+    <string name="template_add">Buat template</string>
+    <string name="template_tab_location">Lokasi</string>
+    <string name="template_tab_group">Grup Aplikasi</string>
+    <string name="template_location_empty">Belum ada template lokasi</string>
+    <string name="template_group_empty">Belum ada grup aplikasi</string>
+    <string name="template_location_create">Buat Template Lokasi</string>
+    <string name="template_location_edit">Edit Template Lokasi</string>
+    <string name="template_name_hint">Nama template (misal: Simpang Lima)</string>
+    <string name="template_group_create">Buat Grup Aplikasi</string>
+    <string name="template_group_edit">Edit Grup Aplikasi</string>
+    <string name="template_group_name_hint">Nama grup (misal: Ojol)</string>
+    <string name="template_group_apps_label">Aplikasi dalam grup</string>
+    <string name="template_group_no_apps">Belum ada aplikasi dipilih</string>
+    <string name="template_group_pick_apps">Pilih Aplikasi</string>
+    <string name="template_group_app_count">%d aplikasi</string>
+    <string name="template_export">Export</string>
+    <string name="template_import">Import</string>
+    <string name="template_exported">Template berhasil di-export</string>
+    <string name="template_imported">%d template berhasil di-import</string>
+    <string name="template_import_error">Gagal import: %s</string>
+    <string name="template_saved">Template disimpan</string>
+    <string name="template_deleted">Template dihapus</string>
+    <string name="template_name_required">Nama template harus diisi</string>
+    <string name="template_coords_required">Koordinat harus diisi</string>
+
+    <!-- Navigation drawer -->
+    <string name="nav_scope">Scope Aplikasi</string>
+    <string name="nav_templates">Template</string>
+
 </resources>
+

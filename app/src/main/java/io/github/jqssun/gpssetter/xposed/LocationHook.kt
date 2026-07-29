@@ -9,12 +9,17 @@ import android.location.Location
 import android.location.LocationManager
 import android.location.LocationRequest
 import android.os.Build
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import io.github.jqssun.gpssetter.BuildConfig
+import io.github.jqssun.gpssetter.model.AppSpoofConfig
+import io.github.jqssun.gpssetter.model.LocationTemplate
+import io.github.jqssun.gpssetter.model.ScopeConfig
 import org.lsposed.hiddenapibypass.HiddenApiBypass
 import timber.log.Timber
 import java.util.*
@@ -52,6 +57,89 @@ object LocationHook {
     private val ignorePkg = arrayListOf("com.android.location.fused", BuildConfig.APPLICATION_ID)
 
     private val context by lazy { AndroidAppHelper.currentApplication() as Context }
+
+    // --- Per-App Scope Config (PRD 1 & 2) ---
+    private var cachedScopeConfig: ScopeConfig? = null
+    private var cachedTemplates: List<LocationTemplate>? = null
+    private var lastScopeRefresh: Long = 0
+    private const val SCOPE_REFRESH_INTERVAL = 2000L // refresh scope every 2s
+    private val gson by lazy { Gson() }
+
+    /**
+     * Refresh scope config and templates from XSharedPreferences.
+     * Cached to avoid excessive deserialization on every location call.
+     */
+    private fun refreshScopeConfig() {
+        val now = System.currentTimeMillis()
+        if (now - lastScopeRefresh < SCOPE_REFRESH_INTERVAL && cachedScopeConfig != null) return
+        lastScopeRefresh = now
+
+        try {
+            val scopeJson = settings.scopeConfigJson
+            cachedScopeConfig = if (scopeJson != null) {
+                gson.fromJson(scopeJson, ScopeConfig::class.java)
+            } else {
+                null
+            }
+
+            val templatesJson = settings.templatesJson
+            cachedTemplates = if (templatesJson != null) {
+                val type = object : TypeToken<List<LocationTemplate>>() {}.type
+                gson.fromJson(templatesJson, type)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            XposedBridge.log("LocationHook: Failed to parse scope config: $e")
+        }
+    }
+
+    /**
+     * Resolve location for a specific package from scope config.
+     * Returns resolved lat/lng/accuracy/altitude or null if no scope configured.
+     */
+    private fun resolveScopeLocation(packageName: String): ResolvedScopeLocation? {
+        refreshScopeConfig()
+        val config = cachedScopeConfig ?: return null
+        val appConfig = config.scope[packageName] ?: return null
+        if (!appConfig.enabled) return null
+
+        // Priority 1: manual override
+        val overrideLat = appConfig.overrideLat
+        val overrideLng = appConfig.overrideLng
+        if (overrideLat != null && overrideLng != null) {
+            return ResolvedScopeLocation(
+                lat = overrideLat,
+                lng = overrideLng,
+                accuracy = appConfig.accuracy,
+                altitude = appConfig.altitude
+            )
+        }
+
+        // Priority 2: resolve from template
+        val templateId = appConfig.templateId
+        if (templateId != null) {
+            val template = cachedTemplates?.find { it.id == templateId }
+            if (template != null) {
+                return ResolvedScopeLocation(
+                    lat = template.lat,
+                    lng = template.lng,
+                    accuracy = template.accuracy,
+                    altitude = template.altitude
+                )
+            }
+        }
+
+        // No location configured in scope → fallback to null (use global)
+        return null
+    }
+
+    private data class ResolvedScopeLocation(
+        val lat: Double,
+        val lng: Double,
+        val accuracy: Float = 5f,
+        val altitude: Double = 0.0
+    )
 
     private fun updateLocation() {
         try {
@@ -102,6 +190,39 @@ object LocationHook {
             Timber.tag("GPS Setter")
                 .e(e, "Failed to get XposedSettings for %s", context.packageName)
         }
+    }
+
+    /**
+     * Get the effective location values for a given package.
+     * If the package has a per-app scope configured, use that.
+     * Otherwise, fall back to the global location (existing behavior).
+     *
+     * @return true if location should be spoofed, false to passthrough real GPS.
+     */
+    private fun getEffectiveLocation(packageName: String): Boolean {
+        // First, check per-app scope
+        val scopeLocation = resolveScopeLocation(packageName)
+        if (scopeLocation != null) {
+            newlat = scopeLocation.lat
+            newlng = scopeLocation.lng
+            accuracy = scopeLocation.accuracy
+            mockAltitude = scopeLocation.altitude
+            return true
+        }
+
+        // Check if package has a scope entry that's disabled → passthrough
+        refreshScopeConfig()
+        val config = cachedScopeConfig
+        if (config != null && config.scope.containsKey(packageName)) {
+            val appConfig = config.scope[packageName]
+            if (appConfig != null && !appConfig.enabled) {
+                // Scope exists but is disabled → passthrough to real GPS
+                return false
+            }
+        }
+
+        // No scope config → use global behavior (existing)
+        return settings.isStarted
     }
 
     @SuppressLint("NewApi")
@@ -298,6 +419,7 @@ object LocationHook {
                 lpparam.classLoader
             )
             val interval = 80
+            val currentPkg = lpparam.packageName
 
             for (method in LocationClass.declaredMethods) {
                 if (method.name == "getLatitude") {
@@ -308,7 +430,8 @@ object LocationHook {
                                 if (System.currentTimeMillis() - mLastUpdated > interval) {
                                     updateLocation()
                                 }
-                                if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                                // Per-app scope: check if this package has custom config
+                                if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
                                     param.result = newlat
                                 }
                             }
@@ -322,7 +445,7 @@ object LocationHook {
                                 if (System.currentTimeMillis() - mLastUpdated > interval) {
                                     updateLocation()
                                 }
-                                if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                                if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
                                     param.result = newlng
                                 }
                             }
@@ -336,7 +459,7 @@ object LocationHook {
                                 if (System.currentTimeMillis() - mLastUpdated > interval) {
                                     updateLocation()
                                 }
-                                if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                                if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
                                     param.result = accuracy
                                 }
                             }
@@ -355,7 +478,7 @@ object LocationHook {
                         if (System.currentTimeMillis() - mLastUpdated > interval) {
                             updateLocation()
                         }
-                        if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                        if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
                             lateinit var location: Location
                             lateinit var originLocation: Location
                             if (param.args[0] == null) {
@@ -402,7 +525,7 @@ object LocationHook {
                         if (System.currentTimeMillis() - mLastUpdated > interval) {
                             updateLocation()
                         }
-                        if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+                        if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
                             val provider = param.args[0] as String
                             val location = Location(provider)
                             location.time = System.currentTimeMillis() - 300

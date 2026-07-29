@@ -28,6 +28,13 @@
 -keep class de.robv.android.xposed.**{*;}
 -keepnames class de.robv.android.xposed.**
 
+# Per-App Scope & Template models (deserialized by Gson in Xposed hook context)
+-keep class io.github.jqssun.gpssetter.model.ScopeConfig{*;}
+-keep class io.github.jqssun.gpssetter.model.AppSpoofConfig{*;}
+-keep class io.github.jqssun.gpssetter.model.LocationTemplate{*;}
+-keep class io.github.jqssun.gpssetter.model.AppGroupTemplate{*;}
+-keep class io.github.jqssun.gpssetter.model.TemplateExportBundle{*;}
+
 -repackageclasses
 -allowaccessmodification
 -overloadaggressively

@@ -12,6 +12,18 @@
         android:icon="@drawable/ic_outline_favorite_list"/>
 
     <item
+        android:id="@+id/nav_scope"
+        android:title="@string/nav_scope"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_scope"/>
+
+    <item
+        android:id="@+id/nav_templates"
+        android:title="@string/nav_templates"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_template"/>
+
+    <item
         android:id="@+id/settings"
         android:title="@string/settings"
         app:showAsAction="always"

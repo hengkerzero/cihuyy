@@ -30,6 +30,24 @@
             android:launchMode="singleTop">
         </activity>
         <activity
+            android:name=".ui.ScopeActivity"
+            android:exported="false"
+            android:label="@string/scope_title"
+            android:launchMode="singleTop">
+        </activity>
+        <activity
+            android:name=".ui.ScopeDetailActivity"
+            android:exported="false"
+            android:label="@string/scope_detail_title"
+            android:launchMode="singleTop">
+        </activity>
+        <activity
+            android:name=".ui.TemplateActivity"
+            android:exported="false"
+            android:label="@string/template_title"
+            android:launchMode="singleTop">
+        </activity>
+        <activity
             android:name=".ui.MapActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
             android:exported="true">

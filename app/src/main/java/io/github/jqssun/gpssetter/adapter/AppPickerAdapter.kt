@@ -54,20 +54,22 @@ class AppPickerAdapter(
                 binding.ivPickerIcon.setImageResource(R.mipmap.ic_launcher)
             }
 
+            // Prevent listener from firing during programmatic update
+            binding.cbApp.setOnCheckedChangeListener(null)
             binding.cbApp.isChecked = item.packageName in selectedPackages
 
-            val clickAction = {
-                if (item.packageName in selectedPackages) {
-                    selectedPackages.remove(item.packageName)
-                } else {
+            binding.cbApp.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) {
                     selectedPackages.add(item.packageName)
+                } else {
+                    selectedPackages.remove(item.packageName)
                 }
-                binding.cbApp.isChecked = item.packageName in selectedPackages
                 onSelectionChanged(selectedPackages)
             }
 
-            binding.cbApp.setOnClickListener { clickAction() }
-            binding.root.setOnClickListener { clickAction() }
+            binding.root.setOnClickListener {
+                binding.cbApp.isChecked = !binding.cbApp.isChecked
+            }
         }
     }
 

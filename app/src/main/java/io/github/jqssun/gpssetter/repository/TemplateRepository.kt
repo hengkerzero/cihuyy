@@ -8,6 +8,7 @@ import io.github.jqssun.gpssetter.model.AppSpoofConfig
 import io.github.jqssun.gpssetter.model.LocationTemplate
 import io.github.jqssun.gpssetter.model.ScopeConfig
 import io.github.jqssun.gpssetter.model.TemplateExportBundle
+import io.github.jqssun.gpssetter.utils.PrefManager
 import timber.log.Timber
 import java.io.File
 import java.io.InputStream
@@ -45,8 +46,12 @@ class TemplateRepository @Inject constructor(
     fun saveLocationTemplates(templates: List<LocationTemplate>) {
         try {
             val tmp = File(context.filesDir, "cihuyy_location_templates.tmp")
-            tmp.writeText(gson.toJson(templates))
+            val json = gson.toJson(templates)
+            tmp.writeText(json)
+            locationFile.delete()
             tmp.renameTo(locationFile)
+            // Sync to SharedPreferences for Xposed hook access
+            PrefManager.templatesJson = json
         } catch (e: Exception) {
             Timber.e(e, "Failed to save location templates")
         }
@@ -94,6 +99,7 @@ class TemplateRepository @Inject constructor(
         try {
             val tmp = File(context.filesDir, "cihuyy_group_templates.tmp")
             tmp.writeText(gson.toJson(templates))
+            groupFile.delete()
             tmp.renameTo(groupFile)
         } catch (e: Exception) {
             Timber.e(e, "Failed to save group templates")

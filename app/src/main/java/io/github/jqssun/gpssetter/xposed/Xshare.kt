@@ -7,8 +7,11 @@ class Xshare {
     private var xPref: XSharedPreferences? = null
 
     private fun pref() : XSharedPreferences {
-        xPref = XSharedPreferences(BuildConfig.APPLICATION_ID,"${BuildConfig.APPLICATION_ID}_prefs")
-        return xPref as XSharedPreferences
+        if (xPref == null) {
+            xPref = XSharedPreferences(BuildConfig.APPLICATION_ID,"${BuildConfig.APPLICATION_ID}_prefs")
+        }
+        xPref!!.reload()
+        return xPref!!
     }
 
     val isStarted : Boolean
@@ -59,5 +62,4 @@ class Xshare {
     val templatesJson: String?
     get() = pref().getString("templates_json", null)
 
-    val reload = pref().reload()
 }

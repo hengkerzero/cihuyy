@@ -48,6 +48,7 @@ class ScopeConfigRepository @Inject constructor(
         try {
             val tmp = File(context.filesDir, "cihuyy_scope_config.tmp")
             tmp.writeText(gson.toJson(config))
+            file.delete()
             tmp.renameTo(file)
             // Sync to SharedPreferences for Xposed hook access
             syncToPrefs(config)

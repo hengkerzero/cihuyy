@@ -228,8 +228,13 @@ object LocationHook {
     @SuppressLint("NewApi")
     fun initHooks(lpparam: XC_LoadPackage.LoadPackageParam) {
 
-        if (lpparam.packageName == "android") { XposedBridge.log("Hooking system server")
-        if (settings.isStarted && !ignorePkg.contains(lpparam.packageName)) {
+        if (lpparam.packageName == "android") {
+            // ===== System Server Hook =====
+            // NOTE: System server hooks apply global location to ALL apps.
+            // Per-app scope is handled at the application hook level below.
+            XposedBridge.log("Hooking system server")
+            if (!settings.isStarted) return
+
             if (System.currentTimeMillis() - mLastUpdated > 200) {
                 updateLocation()
             }
@@ -411,8 +416,8 @@ object LocationHook {
                     }
                 )
             }
-        }
-        } else { // application hook
+        } else if (!ignorePkg.contains(lpparam.packageName)) {
+            // ===== Application Hook (per-app) =====
 
             val LocationClass = XposedHelpers.findClass(
                 "android.location.Location",
@@ -421,18 +426,50 @@ object LocationHook {
             val interval = 80
             val currentPkg = lpparam.packageName
 
+            // Cache resolved effective location to avoid race conditions.
+            // getEffectiveLocation() mutates shared state (newlat, newlng, accuracy, etc.)
+            // so calling it multiple times per request (getLatitude, getLongitude, getAccuracy)
+            // could yield inconsistent values. We call it once and cache the decision.
+            var cachedShouldSpoof: Boolean? = null
+            var cachedLat = 0.0
+            var cachedLng = 0.0
+            var cachedAcc = 0f
+            var cachedAlt = 0.0
+            var cachedSpeed = 0f
+            var cachedBearing = 0f
+            var cacheTimestamp = 0L
+
+            fun resolveAndCache(): Boolean {
+                val now = System.currentTimeMillis()
+                // Re-resolve if cache is older than the update interval
+                if (cachedShouldSpoof != null && now - cacheTimestamp < interval) {
+                    return cachedShouldSpoof!!
+                }
+                if (now - mLastUpdated > interval) {
+                    updateLocation()
+                }
+                val shouldSpoof = getEffectiveLocation(currentPkg)
+                cachedShouldSpoof = shouldSpoof
+                cacheTimestamp = now
+                if (shouldSpoof) {
+                    cachedLat = newlat
+                    cachedLng = newlng
+                    cachedAcc = accuracy
+                    cachedAlt = mockAltitude
+                    cachedSpeed = mockSpeed
+                    cachedBearing = mockBearing
+                }
+                return shouldSpoof
+            }
+
             for (method in LocationClass.declaredMethods) {
                 if (method.name == "getLatitude") {
                     XposedBridge.hookMethod(
                         method,
                         object : XC_MethodHook() {
                             override fun beforeHookedMethod(param: MethodHookParam) {
-                                if (System.currentTimeMillis() - mLastUpdated > interval) {
-                                    updateLocation()
-                                }
-                                // Per-app scope: check if this package has custom config
-                                if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
-                                    param.result = newlat
+                                if (resolveAndCache()) {
+                                    param.result = cachedLat
                                 }
                             }
                         }
@@ -442,11 +479,8 @@ object LocationHook {
                         method,
                         object : XC_MethodHook() {
                             override fun beforeHookedMethod(param: MethodHookParam) {
-                                if (System.currentTimeMillis() - mLastUpdated > interval) {
-                                    updateLocation()
-                                }
-                                if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
-                                    param.result = newlng
+                                if (resolveAndCache()) {
+                                    param.result = cachedLng
                                 }
                             }
                         }
@@ -456,11 +490,8 @@ object LocationHook {
                         method,
                         object : XC_MethodHook() {
                             override fun beforeHookedMethod(param: MethodHookParam) {
-                                if (System.currentTimeMillis() - mLastUpdated > interval) {
-                                    updateLocation()
-                                }
-                                if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
-                                    param.result = accuracy
+                                if (resolveAndCache()) {
+                                    param.result = cachedAcc
                                 }
                             }
                         }
@@ -474,11 +505,7 @@ object LocationHook {
                 Location::class.java,
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
-
-                        if (System.currentTimeMillis() - mLastUpdated > interval) {
-                            updateLocation()
-                        }
-                        if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
+                        if (resolveAndCache()) {
                             lateinit var location: Location
                             lateinit var originLocation: Location
                             if (param.args[0] == null) {
@@ -488,18 +515,18 @@ object LocationHook {
                                 originLocation = param.args[0] as Location
                                 location = Location(originLocation.provider)
                                 location.time = originLocation.time
-                                location.accuracy = accuracy
+                                location.accuracy = cachedAcc
                                 location.bearing = originLocation.bearing
                                 location.bearingAccuracyDegrees = originLocation.bearingAccuracyDegrees
                                 location.elapsedRealtimeNanos = originLocation.elapsedRealtimeNanos
                                 location.verticalAccuracyMeters = originLocation.verticalAccuracyMeters
                             }
 
-                            location.latitude = newlat
-                            location.longitude = newlng
-                            location.altitude = mockAltitude
-                            location.speed = mockSpeed
-                            location.bearing = mockBearing
+                            location.latitude = cachedLat
+                            location.longitude = cachedLng
+                            location.altitude = cachedAlt
+                            location.speed = cachedSpeed
+                            location.bearing = cachedBearing
                             location.speedAccuracyMetersPerSecond = 0F
                             XposedBridge.log("GS: lat: ${location.latitude}, lon: ${location.longitude}")
                             try {
@@ -522,18 +549,15 @@ object LocationHook {
                 String::class.java,
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
-                        if (System.currentTimeMillis() - mLastUpdated > interval) {
-                            updateLocation()
-                        }
-                        if (!ignorePkg.contains(currentPkg) && getEffectiveLocation(currentPkg)) {
+                        if (resolveAndCache()) {
                             val provider = param.args[0] as String
                             val location = Location(provider)
                             location.time = System.currentTimeMillis() - 300
-                            location.latitude = newlat
-                            location.longitude = newlng
-                            location.altitude = mockAltitude
-                            location.speed = mockSpeed
-                            location.bearing = mockBearing
+                            location.latitude = cachedLat
+                            location.longitude = cachedLng
+                            location.altitude = cachedAlt
+                            location.speed = cachedSpeed
+                            location.bearing = cachedBearing
                             location.speedAccuracyMetersPerSecond = 0F
                             XposedBridge.log("GS: lat: ${location.latitude}, lon: ${location.longitude}")
                             try {

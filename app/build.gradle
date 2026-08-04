@@ -9,6 +9,13 @@ plugins {
 
 def tagName = '1.2.0'
 
+// Load local.properties
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+
 android {
     compileSdk 34
     defaultConfig {
@@ -19,6 +26,14 @@ android {
         versionName tagName
         // testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TAG_NAME", "\"${tagName}\"")
+
+        // Supabase credentials dari local.properties
+        def supabaseUrl = localProperties['SUPABASE_URL'] ?: ''
+        def supabaseKey = localProperties['SUPABASE_ANON_KEY'] ?: ''
+        // Pastikan URL diakhiri slash
+        if (supabaseUrl && !supabaseUrl.endsWith('/')) supabaseUrl += '/'
+        buildConfigField("String", "SUPABASE_URL", "\"${supabaseUrl}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${supabaseKey}\"")
     }
     splits {
         abi {

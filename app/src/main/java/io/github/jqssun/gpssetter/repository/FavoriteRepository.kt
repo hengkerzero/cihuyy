@@ -25,12 +25,14 @@ class FavoriteRepository @Inject constructor(
                 auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}"
             )
             remotes.forEach { remote ->
+                // Skip kalau id atau address null
+                val remoteId = remote.id ?: return@forEach
                 favoriteDao.insertToRoomDatabase(
                     Favorite(
-                        id = remote.id,
+                        id = remoteId,
                         address = remote.address,
-                        lat = remote.lat,
-                        lng = remote.lng
+                        lat = remote.lat ?: 0.0,
+                        lng = remote.lng ?: 0.0
                     )
                 )
             }
@@ -48,8 +50,9 @@ class FavoriteRepository @Inject constructor(
                 auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
                 search = "ilike.*${keyword}*"
             )
-            remotes.map {
-                Favorite(id = it.id, address = it.address, lat = it.lat, lng = it.lng)
+            remotes.mapNotNull { remote ->
+                val remoteId = remote.id ?: return@mapNotNull null
+                Favorite(id = remoteId, address = remote.address, lat = remote.lat ?: 0.0, lng = remote.lng ?: 0.0)
             }
         } catch (e: Exception) {
             Timber.e(e, "Cloud search failed")
@@ -60,9 +63,9 @@ class FavoriteRepository @Inject constructor(
     @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun addNewFavorite(favorite: Favorite): Long {
-        // Insert ke cloud
-        try {
-            supabaseApi.insertFavorite(
+        // Insert ke cloud dulu, ambil id yang di-generate Supabase
+        val cloudId: Long? = try {
+            val result = supabaseApi.insertFavorite(
                 apiKey = BuildConfig.SUPABASE_ANON_KEY,
                 auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
                 favorite = FavoriteRemote(
@@ -71,11 +74,15 @@ class FavoriteRepository @Inject constructor(
                     lng = favorite.lng
                 )
             )
+            result.firstOrNull()?.id
         } catch (e: Exception) {
             Timber.e(e, "Cloud insert failed, saved locally only")
+            null
         }
-        // Insert ke Room lokal
-        return favoriteDao.insertToRoomDatabase(favorite)
+
+        // Pakai id dari Supabase kalau berhasil, fallback ke id lokal
+        val finalFavorite = if (cloudId != null) favorite.copy(id = cloudId) else favorite
+        return favoriteDao.insertToRoomDatabase(finalFavorite)
     }
 
     suspend fun deleteFavorite(favorite: Favorite) {

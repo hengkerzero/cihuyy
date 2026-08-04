@@ -8,11 +8,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import io.github.jqssun.gpssetter.R
 import io.github.jqssun.gpssetter.adapter.AppPickerAdapter
 import io.github.jqssun.gpssetter.adapter.AppPickerItem
 import io.github.jqssun.gpssetter.databinding.DialogAppPickerBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AppPickerDialog : DialogFragment() {
 
@@ -101,24 +105,37 @@ class AppPickerDialog : DialogFragment() {
     }
 
     private fun loadApps() {
-        val pm = requireContext().packageManager
-        val ownPkg = requireContext().packageName
+        // Show loading state
+        binding.progressAppPicker.visibility = View.VISIBLE
+        binding.rvAppPicker.visibility = View.GONE
 
-        allApps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter { app ->
-                pm.getLaunchIntentForPackage(app.packageName) != null &&
-                    app.packageName != ownPkg &&
-                    app.packageName !in excludePackages
-            }
-            .map { app ->
-                AppPickerItem(
-                    packageName = app.packageName,
-                    appName = pm.getApplicationLabel(app).toString()
-                )
-            }
-            .sortedBy { it.appName.lowercase() }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val apps = withContext(Dispatchers.IO) {
+                val pm = requireContext().packageManager
+                val ownPkg = requireContext().packageName
 
-        adapter.submitList(allApps)
+                pm.getInstalledApplications(PackageManager.GET_META_DATA)
+                    .filter { app ->
+                        pm.getLaunchIntentForPackage(app.packageName) != null &&
+                            app.packageName != ownPkg &&
+                            app.packageName !in excludePackages
+                    }
+                    .map { app ->
+                        AppPickerItem(
+                            packageName = app.packageName,
+                            appName = pm.getApplicationLabel(app).toString()
+                        )
+                    }
+                    .sortedBy { it.appName.lowercase() }
+            }
+
+            // Back on Main thread
+            allApps = apps
+            adapter.submitList(allApps)
+
+            binding.progressAppPicker.visibility = View.GONE
+            binding.rvAppPicker.visibility = View.VISIBLE
+        }
     }
 
     private fun filterApps(query: String) {

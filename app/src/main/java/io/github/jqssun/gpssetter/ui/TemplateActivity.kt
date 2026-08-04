@@ -1,12 +1,9 @@
 package io.github.jqssun.gpssetter.ui
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -100,18 +97,29 @@ class TemplateActivity : AppCompatActivity() {
     }
 
     private fun setupViewPager() {
-        binding.viewPager.adapter = object : FragmentStateAdapter(this) {
-            override fun getItemCount() = 2
-            override fun createFragment(position: Int): Fragment = when (position) {
-                0 -> LocationTemplatesFragment()
-                1 -> GroupTemplatesFragment()
-                else -> throw IllegalArgumentException("Invalid tab position")
-            }
-        }
+        // Use childFragmentManager-equivalent via supportFragmentManager so Hilt
+        // can properly inject @AndroidEntryPoint fragments inside ViewPager2
+        binding.viewPager.adapter = TemplatePagerAdapter(this)
 
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             tab.text = tabTitles[position]
         }.attach()
+    }
+
+    /**
+     * Named adapter class so Hilt-annotated fragments are correctly
+     * instantiated via the FragmentManager (not plain constructors).
+     */
+    private class TemplatePagerAdapter(activity: AppCompatActivity) :
+        FragmentStateAdapter(activity) {
+
+        override fun getItemCount() = 2
+
+        override fun createFragment(position: Int): Fragment = when (position) {
+            0 -> LocationTemplatesFragment()
+            1 -> GroupTemplatesFragment()
+            else -> throw IllegalArgumentException("Invalid tab position: $position")
+        }
     }
 
     private fun setupFab() {

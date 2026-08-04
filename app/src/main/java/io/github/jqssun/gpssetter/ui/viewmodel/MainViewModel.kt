@@ -53,6 +53,7 @@ class MainViewModel @Inject constructor(
 
     private val _allFavList = MutableStateFlow<List<Favorite>>(emptyList())
     val allFavList : StateFlow<List<Favorite>> =  _allFavList
+
     fun doGetUserDetails(){
         onIO {
             favoriteRepository.getAllFavorites
@@ -65,6 +66,28 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    // Sync semua favorites dari Supabase ke Room lokal
+    fun syncFromCloud() = onIO {
+        favoriteRepository.syncFromCloud()
+    }
+
+    // State untuk hasil search cloud
+    private val _searchResults = MutableStateFlow<List<Favorite>>(emptyList())
+    val searchResults: StateFlow<List<Favorite>> = _searchResults
+
+    fun searchCloud(keyword: String) = onIO {
+        if (keyword.isBlank()) {
+            _searchResults.emit(emptyList())
+            return@onIO
+        }
+        val results = favoriteRepository.searchCloud(keyword)
+        _searchResults.emit(results)
+    }
+
+    fun clearSearchResults() = viewModelScope.launch {
+        _searchResults.emit(emptyList())
+    }
+
     fun update(start: Boolean, la: Double, ln: Double)  {
         prefManger.update(start,la,ln)
     }
@@ -75,13 +98,11 @@ class MainViewModel @Inject constructor(
 
     private fun insertNewFavorite(favorite: Favorite) = onIO {
         _response.postValue(favoriteRepository.addNewFavorite(favorite))
-
     }
 
     val isXposed = MutableLiveData<Boolean>(true)
     fun updateXposedState() {
         onMain {
-            // isXposed.value = YukiHookAPI.Status.isModuleActive
             isXposed.value = false
         }
     }
@@ -125,7 +146,6 @@ class MainViewModel @Inject constructor(
     val downloadState = _downloadState.asStateFlow()
 
 
-    // Got idea from https://github.com/KieronQuinn/DarQ for Check Update
     fun startDownload(context: Context, update: UpdateChecker.Update) {
         if(_downloadState.value is State.Idle) {
             downloadUpdate(context, update.assetUrl, update.assetName)
@@ -208,7 +228,6 @@ class MainViewModel @Inject constructor(
             it.printStackTrace()
             context.showToast(context.getString(R.string.app_update_failed))
         }
-
     }
 
     fun cancelDownload(context: Context) {
@@ -229,29 +248,21 @@ class MainViewModel @Inject constructor(
         object Failed: State()
     }
 
-
-
-     fun storeFavorite(
+    fun storeFavorite(
         address: String,
         lat: Double,
         lon: Double
     ) = onIO {
-
-            val slot: Int
-            var i = 0
-            while (true) {
-                if(getFavoriteSingle(i) == null) {
-                    slot = i
-                    break
-                } else {
-                    i++
-                }
+        val slot: Int
+        var i = 0
+        while (true) {
+            if(getFavoriteSingle(i) == null) {
+                slot = i
+                break
+            } else {
+                i++
+            }
         }
-         insertNewFavorite(Favorite(id = slot.toLong(), address = address, lat = lat, lng = lon))
+        insertNewFavorite(Favorite(id = slot.toLong(), address = address, lat = lat, lng = lon))
     }
-
-
-
-
-
 }

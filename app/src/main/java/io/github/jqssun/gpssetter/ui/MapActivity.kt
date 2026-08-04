@@ -1180,6 +1180,8 @@ class MapActivity : BaseMapActivity(), OnMapReadyCallback, GoogleMap.OnMapClickL
         super.onStart()
         // App kembali ke depan: sembunyikan floating control.
         hideFloatingControl()
+        // Sync favorites dari Supabase ke Room lokal (background, tidak block UI)
+        viewModel.syncFromCloud()
     }
 
     override fun onStop() {
